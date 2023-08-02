@@ -22,6 +22,31 @@
           },
           "end": "\\n",
           "name": "comment.line.number-sign.cortada"
+        },
+        {
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.cortada"
+            }
+          },
+          "match": ";~~;",
+          "name": "comment.block.empty.cortada"
+        },{
+          "include": "#comments-inline"
+        }
+      ]
+    },
+    "comments-inline": {
+      "patterns": [
+        {
+          "begin": ";~",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.cortada"
+            }
+          },
+          "end": "~;",
+          "name": "comment.block.cortada"
         }
       ]
     },
@@ -35,14 +60,14 @@
     },
     "reserved-words": {
       "name": "entity.name.function.member.cortada",
-      "match": "\\b(print|main|throw|nil)\\b"
+      "match": "\\b(int|float|string|input|print|main|core|throw|nil|true|false)\\b"
     },
 
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.cortada",
-          "match": "\\b(fn|var|in|delete|and|or|cast)\\b"
+          "match": "\\b(fn|var|in|delete|include|and|or|not|cast)\\b"
         }
       ]
     },

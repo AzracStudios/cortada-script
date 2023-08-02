@@ -1,0 +1,23 @@
+var memo = {}
+
+fn fib(n) do
+    var a, b, c, i = 1, 0, 0, 0
+    
+    if n in memo then
+        return memo[n]
+    end
+
+    do until i < n 
+        a, b = b, c
+        c = a + b
+        i ++
+    stop
+    
+    memo[n] = c
+    return c
+end
+
+fn main do
+    var n = input("enter n: ") cast int
+    print(fib(n))
+end

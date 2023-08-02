@@ -1,0 +1,40 @@
+fn calculator() do 
+    var num1 = input("num 1: ") cast int
+    var num2 = input("num 2: ") cast int
+    var op = input("op: ") cast int
+
+    var res = 0
+
+    switch op do
+        case "+" do
+            res = num1 + num2
+        end
+
+        case "-" do 
+            res = num1 - num2
+        end
+
+        case "*" do
+            res = num1 * num2
+        end
+
+        case "/" do
+            if num2 == 0 then
+                throw ("Division by 0!")
+            end
+
+            res = num1 / num2
+        end
+    end
+
+    return res
+end
+
+fn main do
+    var run = true
+
+    do until run
+        print(calculator())
+        run = input("again? [y/n]: ") == "y"
+    stop
+end
