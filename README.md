@@ -1,5 +1,5 @@
-![CortadaScript Logo](./assets/gthub-header-dark.svg#gh-dark-mode-only)
-![CortadaScript Logo](./assets/gthub-header-light.svg#gh-light-mode-only)
+![CortadaScript Logo](./assets/github-header-dark.svg#gh-dark-mode-only)
+![CortadaScript Logo](./assets/github-header-light.svg#gh-light-mode-only)
 
 CortadaScript is an interpreted language, whose design is inspired by basic and python and name by coffee. I am building this as my high school final year project. It is very much rough around the edges (and even at the core) but it serves a great learning experience.
 
