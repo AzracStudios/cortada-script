@@ -1,0 +1,42 @@
+{
+  "name": "cortada_script",
+  "displayName": "Cortada Script",
+  "description": "Syntax highlighting support for the cortada scripting language",
+  "autor": "Azrac Studios",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.76.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "cortada",
+        "aliases": [
+          "Cortada",
+          "cortada",
+          "Cortada Script",
+          "cortada script",
+          "cortada_script"
+        ],
+        "extensions": [
+          ".cortada"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "dark": "./cortada-file-icon-dark.svg",
+          "light": "./cortada-file-icon-light.svg"
+	}
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cortada",
+        "scopeName": "source.cortada",
+        "path": "./syntaxes/cortada.tmLanguage.json"
+      }
+    ]
+  }
+}

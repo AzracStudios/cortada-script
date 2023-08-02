@@ -1,0 +1,30 @@
+fn stuff (a, b, c) do 
+    var x = a + b
+    var y = a - b
+
+    return x / c * y / c
+end
+
+
+fn main do
+    var m = stuff (1, 2, 3)
+    print(m)
+
+    ~ this is a comment
+
+    if m < 3 then  ~ this is an inline comment cuz why not
+        print("m doesn't meet threshold")
+
+    elif m == 3 then
+        print("m meets threshold")
+
+    else
+        print("m exceeds threshold")
+
+    end
+
+    loop until m < 5 ** m
+        m ++  
+    stop
+end
+

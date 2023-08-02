@@ -1,0 +1,116 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "cortada_script",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#operators" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#reserved-words" },
+    { "include": "#ctrl-statements" },
+    { "include": "#keywords" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "begin": "~",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.cortada"
+            }
+          },
+          "end": "\\n",
+          "name": "comment.line.number-sign.cortada"
+        }
+      ]
+    },
+    "ctrl-statements": {
+      "patterns": [
+        {
+          "name": "keyword.control.cortada",
+          "match": "\\b(if|elif|else|loop|until|stop|return|break|then|do|end|switch|case)\\b"
+        }
+      ]
+    },
+    "reserved-words": {
+      "name": "entity.name.function.member.cortada",
+      "match": "\\b(print|main|throw|nil)\\b"
+    },
+
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.cortada",
+          "match": "\\b(fn|var|in|delete|and|or|cast)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "keyword.other.unit.suffix.integer.cortada",
+          "match": "(^-?[0-9][0-9\\.]+$)"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.cortada",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.cortada",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "expression": {
+      "patterns": [
+        { "include": "#reserved-words" },
+        { "include": "#numbers" },
+        { "include": "#paren-expression" },
+        { "include": "#strings" }
+      ]
+    },
+    "paren-expression": {
+      "patterns": [
+        {
+          "captures": {
+            "1": {
+              "name": "entity.name.function.cortada"
+            }
+          },
+          "name": "punctuation.definition.parameters.cortada",
+          "match": "\\b(\\w+)(?:\\s+([-a-zA-Z0-9_] + ))?\\s*(\\()",
+          "patterns": [{ "include": "#expression" }]
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.increment.cortada",
+          "match": "\\+\\+"
+        },
+        {
+          "name": "keyword.operator.decrement.cortada",
+          "match": "--"
+        },
+        {
+          "name": "keyword.operator.assignment.compound.cortada",
+          "match": "%=|\\+=|-=|\\*=|(?<!\\()/="
+        },
+        {
+          "name": "keyword.operator.comparison.cortada",
+          "match": "!=|<=|>=|==|<|>"
+        },
+        {
+          "name": "keyword.operator.cortada",
+          "match": "%|\\*|/|-|\\+"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.cortada"
+}
