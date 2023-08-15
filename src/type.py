@@ -18,7 +18,7 @@ TokenType: TypeAlias = (
         "INC",
         "DEC",
         "SUMASSIGN",
-        "MINASSIGN",
+        "SUBASSIGN",
         "MULASSIGN",
         "DIVASSIGN",
         "FLRDIVASSIGN",
@@ -34,8 +34,11 @@ TokenType: TypeAlias = (
         "FLOAT",
         "STRING",
         "KWRD",
-        "IDENT"
+        "IDENT",
+        "EOF"
     ] | None
 )
 
 TokenValue: TypeAlias = int | float | str | None 
+
+ErrorType: TypeAlias = Literal["Lexer Error", "Parser Error", "Runtime Error"]
