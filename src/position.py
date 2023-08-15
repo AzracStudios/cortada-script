@@ -21,4 +21,4 @@ class Position:
         return self
     
     def __repr__(self) -> str:
-        return f"Ln: {self.ln} | Col: {self.col} | Idx: {self.idx}"
+        return f"Ln: {self.ln + 1}, Col: {self.col}"
