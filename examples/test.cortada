@@ -6,24 +6,25 @@ fn stuff (a, b, c) do
 end
 
 
+~ this is the main function
 fn main do
     var m = stuff (1, 2, 3)
     print(m)
 
-    ~ this is a comment
-
-    if m < 3 then  ~ this is an inline comment cuz why not
+    if m < 3 then
         print("m doesn't meet threshold")
-
     elif m == 3 then
         print("m meets threshold")
-
     else
         print("m exceeds threshold")
-
     end
 
-    loop until m < 5 ** m
+    ;~
+        This is a block comment!!
+        The lexer will skip through all this!
+    ~;
+
+    loop until m < 5 ** m ~ this is a loop
         m ++  
     stop
 end
