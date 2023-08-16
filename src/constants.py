@@ -13,6 +13,7 @@ TT_GT = "GT"
 TT_LTE = "LTE"
 TT_GTE = "GTE"
 TT_EQL = "EQL"
+TT_NEQL = "NEQL"
 
 ## ASSIGN ##
 TT_ASSIGN = "ASSIGN"
@@ -64,4 +65,6 @@ KWRDS = [
     "and",
     "or",
     "not",
+    "true",
+    "false"
 ]

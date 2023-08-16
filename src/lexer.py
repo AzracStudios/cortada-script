@@ -1,6 +1,6 @@
 from position import Position
 from tok import Token
-from error import IllegalCharacterError
+from error import IllegalCharacter
 from switch import *
 from constants import *
 from color import Colors
@@ -12,7 +12,7 @@ class Lexer:
         self.file_name: str = file_name
         self.src: str = src
         self.char: str | None = ""
-        self.position: Position = Position(-1, -1, 0, self.file_name)
+        self.position: Position = Position(-1, -1, 0, self.file_name, self.src)
         self.should_advance_next_ittr: bool = True
         self.tokens: list[Token] = []
         self.advance()
@@ -33,6 +33,7 @@ class Lexer:
             "%=": TT_MODASSIGN,
             "=": TT_ASSIGN,
             "==": TT_EQL,
+            "!=": TT_NEQL,
             "<": TT_LT,
             "<=": TT_LTE,
             ">": TT_GT,
@@ -77,7 +78,7 @@ class Lexer:
         self.should_advance_next_ittr = False
         return Token(assign_repeat_case_lut[case], pos)
 
-    def case_num(self, case: str) -> Token | IllegalCharacterError:
+    def case_num(self, case: str) -> Token | IllegalCharacter:
         pos = self.position.copy()
         num_str = ""
         is_float = case == "."
@@ -100,9 +101,8 @@ class Lexer:
         self.should_advance_next_ittr = False
 
         if should_return_error:
-            return IllegalCharacterError(
+            return IllegalCharacter(
                 ".",
-                self.src,
                 pos,
                 self.position.copy(),
                 help_text=f"{Colors.bright_green(num_str)} is not a valid int or float. Try removing the '.' @ {error_pos}",
@@ -122,26 +122,11 @@ class Lexer:
         error_pos: Position | None = None
         error_char: str = ""
 
-        while self.char and self.char != " ":
+        while self.char and (self.char in (ALPH_STR + NUM_STR)) and self.char != " ":
             kwrd_ident_str += self.char
-            if (self.char not in (ALPH_STR + NUM_STR) or self.char == ".") and (
-                not should_return_error
-            ):
-                error_pos = self.position.copy()
-                should_return_error = True
-                error_char = self.char
             self.advance()
 
         self.should_advance_next_ittr = False
-
-        if should_return_error:
-            return IllegalCharacterError(
-                ".",
-                self.src,
-                pos,
-                self.position.copy(),
-                help_text=f"{Colors.bright_green(kwrd_ident_str)} is not a valid identifier. Try removing the '{error_char}' @ {error_pos}",
-            )
 
         return Token(
             TT_KWRD if kwrd_ident_str in KWRDS else TT_IDENT,
@@ -176,7 +161,7 @@ class Lexer:
 
         return Token("STRING", pos, end_pos=self.position, value=_str)
 
-    def next(self) -> tuple[Token | None, IllegalCharacterError | None]:
+    def next(self) -> tuple[Token | None, IllegalCharacter | None]:
         switch: Switch = Switch(
             self.char,
             [
@@ -197,15 +182,14 @@ class Lexer:
         )
 
         tok = switch.eval()
-        if isinstance(tok, IllegalCharacterError):
+        if isinstance(tok, IllegalCharacter):
             return (None, tok)
 
         if not tok:
             return (
                 None,
-                IllegalCharacterError(
+                IllegalCharacter(
                     self.char,
-                    self.src,
                     self.position.copy(),
                     self.position.copy().advance(),
                 ),
@@ -213,7 +197,7 @@ class Lexer:
 
         return (tok, None)
 
-    def tokenize(self) -> list[Token] | IllegalCharacterError:
+    def tokenize(self) -> list[Token] | IllegalCharacter:
         while self.char != None:
             next_token, error = self.next()
 

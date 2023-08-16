@@ -1,7 +1,18 @@
-expr: term ((PLUS | MINUS) term)*
+expr       : KWRD:var IDENT ASSIGN expr
+           : IDENT ASSIGN expr
+           : comp-expr ((KWRD:and | KWRD:or) comp-expr)*
+           
+comp-expr  : KWRD:not comp-expr
+           : arith-expr ((EQ | LT | GT | LTE | GTE) arith-expr)*
 
-term: factor ((MUL | DIV) factor)*
-
-factor: INT | FLOAT
-      : (PLUS | MINUS) factor
-      : LPAREN expr RPAREN
+arith-expr : term ((PLUS | MINUS) term)*
+    
+term       : factor ((MUL | DIV) factor)*
+   
+factor     : (PLUS | MINUS) factor
+           : power
+   
+power      : atom (POW factor)*
+   
+atom       : INT | FLOAT | BOOLEAN
+           : LPAREN expr RPAREN

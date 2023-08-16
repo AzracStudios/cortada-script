@@ -14,6 +14,7 @@ TokenType: TypeAlias = (
         "LTE",
         "GTE",
         "EQL",
+        "NEQL",
         "ASSIGN",
         "INC",
         "DEC",
