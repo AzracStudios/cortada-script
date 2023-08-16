@@ -36,51 +36,61 @@ def shell():
     release_info_str = f"Cortada Script {info['version']} ({info['date']} version) on {platform.platform()}"
 
     print(release_info_str)
-    print("Type '__HELP__' for more information")
+    print("Type 'help' for more information")
 
     exit_shell = False
+    debug = False
 
     while not exit_shell:
         try:
             src = input(f"\n{Colors.bright_black('>')} ")
         except KeyboardInterrupt:
-            print("^C\nKeyboard Interrupt (to exit, type '__QUIT__')")
+            print("^C\nKeyboard Interrupt (to exit, type 'quit')")
             continue
 
-        if src == "__DOCS__":
+        if src == "docs":
             continue  # TODO: OPEN WEB DOCS
 
-        if src == "__HELP__":
+        if src == "help":
             print(
                 """
-__DOCS__         open documentation in your web browser
-__INFO__         display version and platform information
-__LICENSE__      display license
-__HELP__         display this help text
-__QUIT__         quit shell"""
+debug        toggle debug mode to display tokens and ast
+docs         open documentation in your web browser
+info         display version and platform information
+license      display license
+help         display this help text
+quit         quit shell"""
             )
             continue
 
-        if src == "__LICENSE__":
+        if src == "license":
             if txt := get_license():
                 print(f"\n{txt}")
             continue
 
-        if src == "__QUIT__":
+        if src == "debug":
+            debug = not debug
+            print(f"debug: {debug}")
+            continue
+
+        if src == "quit":
             exit_shell = True
             continue
 
-        if src == "__INFO__":
+        if src == "info":
             print(f"\n{release_info_str}")
             continue
 
-        node, error = run(src)
+        if len(src.replace(" ", "").replace("\t", "")) == 0:
+            continue
+
+        val, error = run(src, debug)
 
         if error:
             print(error.generate_error_text())
             continue
 
-        print(node)
+        print(val)
 
 
 if __name__ == "__main__":
