@@ -1,14 +1,15 @@
 from typing import Self
 
 class Position:
-    def __init__(self, idx: int, col: int, ln: int, file_name: str):
+    def __init__(self, idx: int, col: int, ln: int, file_name: str, file_src: str):
         self.idx: int = idx
         self.col: int = col
         self.ln: int = ln
         self.file_name: str = file_name
+        self.file_src: str = file_src
 
     def copy(self) -> Self:
-        return Position(self.idx, self.col, self.ln, self.file_name)
+        return Position(self.idx, self.col, self.ln, self.file_name, self.file_src)
 
     def advance(self, char=None) -> Self:
         self.idx += 1
