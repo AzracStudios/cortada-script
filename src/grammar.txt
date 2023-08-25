@@ -1,5 +1,12 @@
+* -> Many
++ -> Permuted many
+| -> Or
+? -> Optional
+
+
 expr       : KWRD:var IDENT ASSIGN expr
-           : IDENT ASSIGN expr
+           : IDENT (ASSIGN | SUMASSIGN | SUBASSIGN | MULASSIGN | DIVASSIGN | POWASSIGN | MODASSIGN) expr
+           : IDENT (INC | DEC)
            : comp-expr ((KWRD:and | KWRD:or) comp-expr)*
            
 comp-expr  : KWRD:not comp-expr
@@ -12,7 +19,22 @@ term       : factor ((MUL | DIV) factor)*
 factor     : (PLUS | MINUS) factor
            : power
    
-power      : atom (POW factor)*
+power      : call (POW factor)*
+
+call       : atom (LPAREN (expr (COMMA expr)*)? RPAREN)?
    
-atom       : INT | FLOAT | BOOLEAN
+atom       : INT | FLOAT | BOOLEAN | NIL | STRING | IDENT
            : LPAREN expr RPAREN
+           : fmt-string
+           : if-expr
+           : for-expr
+
+if-expr    : KWRD:if expr KWRD:then expr
+             (KWRD:elif expr KWRD:then expr)*
+             (KWRD:else expr)?
+
+fmt-string : BACKTICK ((DOLLAR LBRACE expr RBRACE)* + STRING) BACKTICK
+
+while-expr : KWRD:while expr KWRD:do expr KWRD:stop
+
+func-expr  : KWRD:fn IDENT? (LPAREN (IDENT (COMMA IDENT)*)? RPAREN)? ARROW expr KWRD:end
