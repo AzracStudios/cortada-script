@@ -24,8 +24,12 @@ fn main do
         The lexer will skip through all this!
     ~;
 
-    loop until m < 5 ** m ~ this is a loop
-        m ++  
+    while m < 5 ** m do ~ this is a while loop
+        ~ do stuff
+    stop
+
+    for var i = 0; i < 23; i ++; do  ~ and this is a for loop
+        ~ do more stuff
     stop
 end
 

@@ -54,7 +54,7 @@
       "patterns": [
         {
           "name": "keyword.control.cortada",
-          "match": "\\b(if|elif|else|loop|until|stop|return|break|then|do|end|switch|case)\\b"
+          "match": "\\b(if|elif|else|while|for|stop|return|break|then|do|end|switch|case)\\b"
         }
       ]
     },
