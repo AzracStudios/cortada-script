@@ -1,7 +1,6 @@
 from position import Position
 from color import Colors
 from type import ErrorType
-from context import Context
 
 
 class Error:
@@ -27,7 +26,7 @@ class Error:
         res += self.generate_code_preview()
 
         if self.help_text:
-            res += Colors.green(f"\n\n{Colors.bright_green('Hint:')} {self.help_text}")
+            res += Colors.green(f"\n\n{Colors.bright_green('Hint:')} {Colors.green(self.help_text)}")
 
         return f"{res}"
 
@@ -79,6 +78,30 @@ class IllegalCharacter(Error):
         )
 
 
+class UnterminatedString(Error):
+    def __init__(
+        self,
+        start_pos: Position,
+        end_pos: Position,
+        term_char: str,
+    ):
+        char_text = '\'"\''
+        if term_char == "'":
+            char_text = "\"'\""
+        elif term_char == "`":
+            char_text = "'`'"
+        
+        Error.__init__(
+            self,
+            f"Unterminated String",
+            start_pos.file_src,
+            start_pos,
+            end_pos,
+            "Lexer Error",
+            f'Try adding a {char_text} at the end of the line',
+        )
+
+
 class InvalidSyntax(Error):
     def __init__(
         self,
@@ -104,7 +127,7 @@ class RTError(Error):
         start_pos: Position,
         end_pos: Position,
         details: str,
-        context: Context,
+        context,
         help_text: str | None = None,
     ):
         self.context = context
@@ -142,14 +165,14 @@ class RTError(Error):
         return f"{Colors.bright_red('Traceback')} {Colors.red('(most recent call last)')}:\n{result}"
 
 
-### RUNTIME ERRORS ###  
+### RUNTIME ERRORS ###
 class ReferenceError(RTError):
     def __init__(
         self,
         details: str,
         start_pos: Position,
         end_pos: Position,
-        context: Context,
+        context,
         help_text: str | None = None,
     ):
         RTError.__init__(
@@ -161,3 +184,13 @@ class ReferenceError(RTError):
             help_text,
         )
 
+
+class TypeError(RTError):
+    def __init__(self, details: str, start_pos: Position, end_pos: Position, context):
+        RTError.__init__(
+            self,
+            start_pos,
+            end_pos,
+            details,
+            context,
+        )
