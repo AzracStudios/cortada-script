@@ -89,8 +89,9 @@ quit         quit shell"""
         if error:
             print(error.generate_error_text())
             continue
-
-        print(val)
+        
+        if val != None:
+            print(val)
 
 
 if __name__ == "__main__":
