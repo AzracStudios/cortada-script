@@ -36,8 +36,15 @@ TT_RBRACE = "RBRACE"
 
 ## MISC ##
 TT_SPACE = "SPACE"
+TT_COMMA = "COMMA"
+TT_ARROW = "ARROW"
 TT_NL = "NL"
 TT_EOF = "EOF"
+TT_COL = "COL"
+TT_DOLLAR = "DOLLAR"
+TT_BACKTICK = "BACKTICK"
+
+## CONSTS ##
 NUM_STR = ".0123456789"
 ALPH_STR = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -45,26 +52,27 @@ ALPH_STR = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 TT_INT = "INT"
 TT_FLOAT = "FLOAT"
 TT_STRING = "STRING"
+TT_FMT_STRING = "FMT_STRING"
 TT_KWRD = "KWRD"
 TT_IDENT = "IDENT"
 
 ## KWRD ##
 KWRDS = [
     "var",
-    "fn",
-    "do",
-    "end",
-    "if",
-    "elif",
-    "else",
-    "then",
-    "loop",
-    "until",
-    "stop",
-    "return",
     "and",
     "or",
     "not",
     "true",
-    "false"
+    "false",
+    "if",
+    "elif",
+    "else",
+    "then",
+    "nil",
+    "while",
+    "stop",
+    "return",
+    "fn",
+    "do",
+    "end",
 ]

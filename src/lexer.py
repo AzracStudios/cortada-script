@@ -1,6 +1,6 @@
 from position import Position
 from tok import Token
-from error import IllegalCharacter
+from error import IllegalCharacter, UnterminatedString, Error
 from switch import *
 from constants import *
 from color import Colors
@@ -43,6 +43,8 @@ class Lexer:
         self.advance()
         if self.char == "=":
             return Token(assign_case_lut[f"{case}="], pos, end_pos=self.position)
+        if self.char == ">":
+            return Token(TT_ARROW, pos, end_pos=self.position)
 
         self.should_advance_next_ittr = False
         return Token(assign_case_lut[case], pos)
@@ -118,9 +120,6 @@ class Lexer:
     def case_kwrd_or_ident(self, case):
         pos = self.position.copy()
         kwrd_ident_str = ""
-        should_return_error = False
-        error_pos: Position | None = None
-        error_char: str = ""
 
         while self.char and (self.char in (ALPH_STR + NUM_STR)) and self.char != " ":
             kwrd_ident_str += self.char
@@ -144,36 +143,134 @@ class Lexer:
 
         _str = ""
 
-        esc_char = {"n": "\n", "t": "\t"}
+        esc_char = {"n": "\n", "t": "\t", "r": "\r", "b": "\b"}
 
         while (self.char != case or esc) and self.char != None:
             if esc:
                 _str += esc_char.get(self.char, self.char)
+
             else:
                 if self.char == "\\":
                     esc = True
+                    self.advance()
+                    continue
                 else:
                     _str += self.char
             self.advance()
             esc = False
 
-        self.should_advance_next_ittr = False
+        if self.char != case:
+            return UnterminatedString(pos, self.position.copy(), case)
 
         return Token("STRING", pos, end_pos=self.position, value=_str)
+
+    def case_fmt_string(self, case):
+        pos = self.position.copy()
+        esc = False
+
+        if case in "`":
+            self.advance()
+
+        fmt_str: list[tuple[(Token | list), str]] = []
+        segment = ""
+
+        esc_char = {"n": "\n", "t": "\t", "r": "\r", "b": "\b"}
+
+        while (self.char != case or esc) and self.char != None:
+            if esc:
+                segment += esc_char.get(self.char, self.char)
+
+            elif self.char == "$":
+                self.advance()
+
+                if self.char == "{":
+                    self.advance()
+                    if len(segment):
+                        fmt_str.append((Token(TT_STRING, pos, value=segment), "string"))
+                    segment = ""
+
+                    toks: list[Token] = []
+                    did_close = False
+
+                    while self.char != None and self.char != "`":
+                        if self.char == "}":
+                            did_close = True
+                            break
+
+                        next_token, error = self.next()
+
+                        if error:
+                            if self.char == "$":
+                                return Error(
+                                    "Cannot nest formatted strings",
+                                    self.src,
+                                    pos,
+                                    self.position,
+                                    "Lexer Error",
+                                )
+                            return error
+
+                        if self.should_advance_next_ittr:
+                            self.advance()
+
+                        if next_token and next_token != "SPACE":
+                            toks.append(next_token)
+
+                        self.should_advance_next_ittr = True
+
+                    if self.char == "`" and not did_close:
+                        return Error(
+                            "Unexpected end of formatted string",
+                            self.src,
+                            pos,
+                            self.position,
+                            "Lexer Error",
+                            help_text="Close the '${' with a '}'",
+                        )
+
+                    toks.append(Token(TT_EOF, self.position))
+                    fmt_str.append((toks, "expr"))
+
+                else:
+                    segment += "$"
+            else:
+                if self.char == "\\":
+                    esc = True
+                    self.advance()
+                    continue
+                else:
+                    segment += self.char
+
+            if self.char != case:
+                self.advance()
+            esc = False
+
+        if self.char != case:
+            return UnterminatedString(pos, self.position.copy(), "`")
+        elif segment != "":
+            fmt_str.append((Token(TT_STRING, pos, value=segment), "string"))
+
+        if self.char == case:
+            self.advance()
+
+        return Token(TT_FMT_STRING, pos, end_pos=self.position, value=fmt_str)
 
     def next(self) -> tuple[Token | None, IllegalCharacter | None]:
         switch: Switch = Switch(
             self.char,
             [
+                ReturnableCase(";", Token(TT_COL, self.position)),
                 ReturnableCase("(", Token(TT_LPAREN, self.position)),
                 ReturnableCase(")", Token(TT_RPAREN, self.position)),
                 ReturnableCase("[", Token(TT_LBRACK, self.position)),
                 ReturnableCase("]", Token(TT_RBRACK, self.position)),
                 ReturnableCase("{", Token(TT_LBRACE, self.position)),
                 ReturnableCase("}", Token(TT_RBRACE, self.position)),
+                ReturnableCase(",", Token(TT_COMMA, self.position)),
                 ReturnableCase("\n", TT_NL),
                 ReturnableCase(" ", TT_SPACE),  # This is not added to the tokens list
                 ExecutableCase("%=<>", self.case_has_assignment),
+                ExecutableCase("`", self.case_fmt_string),
                 ExecutableCase("+-*/", self.case_has_assignment_or_repeats),
                 ExecutableCase(NUM_STR, self.case_num),
                 ExecutableCase(f"_{ALPH_STR}", self.case_kwrd_or_ident),
@@ -182,7 +279,7 @@ class Lexer:
         )
 
         tok = switch.eval()
-        if isinstance(tok, IllegalCharacter):
+        if isinstance(tok, Error):
             return (None, tok)
 
         if not tok:

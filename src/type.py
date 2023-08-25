@@ -15,6 +15,9 @@ TokenType: TypeAlias = (
         "GTE",
         "EQL",
         "NEQL",
+        "COL",
+        "COMMA",
+        "ARROW",
         "ASSIGN",
         "INC",
         "DEC",
@@ -34,12 +37,13 @@ TokenType: TypeAlias = (
         "INT",
         "FLOAT",
         "STRING",
+        "FMT_STRING",
         "KWRD",
         "IDENT",
-        "EOF"
+        "EOF",
     ] | None
 )
 
-TokenValue: TypeAlias = int | float | str | None 
+TokenValue: TypeAlias = int | float | str | list[tuple[(Any | list), str]] | None 
 
 ErrorType: TypeAlias = Literal["Lexer Error", "Parser Error", "Runtime Error"]
