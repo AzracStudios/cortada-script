@@ -1,0 +1,12 @@
+print        : prints value to stdout
+print_eol    : prints value to stdout with custom end of line
+hello_world  : prints the ascii cortada logo with hello world to stdout
+input        : gets input from stdin
+clear        : clears stdout
+
+to_int       : converts arg into int
+to_float     : converts arg into float
+to_string    : converts arg into string
+to_bool      : converts arg into bool
+
+type         : returns type of arg as string
