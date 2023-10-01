@@ -8,16 +8,16 @@ from type import *
 
 
 class Lexer:
-    def __init__(self, file_name: str, src: str):
-        self.file_name: str = file_name
-        self.src: str = src
-        self.char: str | None = ""
-        self.position: Position = Position(-1, -1, 0, self.file_name, self.src)
-        self.should_advance_next_ittr: bool = True
-        self.tokens: list[Token] = []
+    def __init__(self, file_name, src):
+        self.file_name = file_name
+        self.src = src
+        self.char = ""
+        self.position = Position(-1, -1, 0, self.file_name, self.src)
+        self.should_advance_next_ittr = True
+        self.tokens = []
         self.advance()
 
-    def advance(self) -> None:
+    def advance(self):
         self.position.advance(self.char)
 
         if self.position.idx < len(self.src):
@@ -26,7 +26,7 @@ class Lexer:
 
         self.char = None
 
-    def case_has_assignment(self, case: str) -> Token:
+    def case_has_assignment(self, case):
         pos = self.position.copy()
         assign_case_lut: dict[str, TokenType] = {
             "%": TT_MOD,
@@ -121,7 +121,7 @@ class Lexer:
         pos = self.position.copy()
         kwrd_ident_str = ""
 
-        while self.char and (self.char in (ALPH_STR + NUM_STR)) and self.char != " ":
+        while self.char and (self.char in (ALPH_STR + NUM_STR + "_")) and self.char != " ":
             kwrd_ident_str += self.char
             self.advance()
 
@@ -252,14 +252,20 @@ class Lexer:
 
         if self.char == case:
             self.advance()
-
+        self.should_advance_next_ittr = False
         return Token(TT_FMT_STRING, pos, end_pos=self.position, value=fmt_str)
 
+    def case_comment(self,case):
+        while self.char != "\n":
+            self.advance()
+        
+        return Token(TT_NL, self.position)
+        
     def next(self) -> tuple[Token | None, IllegalCharacter | None]:
         switch: Switch = Switch(
             self.char,
             [
-                ReturnableCase(";", Token(TT_COL, self.position)),
+                ReturnableCase(";\n", Token(TT_NL, self.position)),
                 ReturnableCase("(", Token(TT_LPAREN, self.position)),
                 ReturnableCase(")", Token(TT_RPAREN, self.position)),
                 ReturnableCase("[", Token(TT_LBRACK, self.position)),
@@ -267,8 +273,9 @@ class Lexer:
                 ReturnableCase("{", Token(TT_LBRACE, self.position)),
                 ReturnableCase("}", Token(TT_RBRACE, self.position)),
                 ReturnableCase(",", Token(TT_COMMA, self.position)),
-                ReturnableCase("\n", TT_NL),
-                ReturnableCase(" ", TT_SPACE),  # This is not added to the tokens list
+                ReturnableCase("@", Token(TT_AT, self.position)),
+                ReturnableCase(" \t", TT_SPACE),  # This is not added to the tokens list
+                ExecutableCase(";~", self.case_comment),
                 ExecutableCase("%=<>", self.case_has_assignment),
                 ExecutableCase("`", self.case_fmt_string),
                 ExecutableCase("+-*/", self.case_has_assignment_or_repeats),
