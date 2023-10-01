@@ -1,0 +1,13 @@
+fn square(n) do
+    var i = 0; while i < n do
+        var j = 0; while j < n do
+            print_eol(" * ", "")
+            j++
+        end
+        
+        print("")
+        i++
+    end
+end
+
+square(5)

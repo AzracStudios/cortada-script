@@ -1,0 +1,28 @@
+fn can_you_drive(age) do
+    var res_str = `You are ${age} years old. `
+
+    if age < 18 then
+        res_str += `And that is ${18 - age} years under 18. So you cannot drive!`
+    elif age == 18 then
+        res_str += `So you can drive whatever you want!`
+    else
+        res_str += `And that is ${age - 18} years over 18. So you can drive whatever you want!`
+    end
+
+    return res_str
+end
+
+
+fn main do
+    var person1_age = 18
+    var person2_age = person1_age * 2 + 5
+
+    var person1_can_drive = can_you_drive(person1_age)
+    var person2_can_drive = can_you_drive(person2_age)
+
+    clear()
+    print(person1_can_drive)
+    print(person2_can_drive)
+end
+
+main()

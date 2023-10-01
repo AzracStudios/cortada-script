@@ -1,9 +1,5 @@
-include core
-
-fn main do
-    var a = 2
-
-    core.ascii_cup() ~ core
-    print(`${' ' * 20}Hello world!`)
+fn main do 
+    hello_world()
 end
 
+main()
