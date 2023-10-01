@@ -39,17 +39,24 @@ class Error:
             idx_end = len(self.src)
 
         line_count: int = self.end_pos.ln - self.start_pos.ln + 1
+        if self.end_pos.ln > 1:
+            line_count += 1
+            
 
         for i in range(line_count):
-            line_number = f"{self.start_pos.ln + i + 1}  | "
-            line: str = self.src[idx_start:idx_end]
+            sp = len(str(self.start_pos.ln + line_count))
+            line_number = f"{self.start_pos.ln + i + 1}{' ' * (sp - len(str(self.start_pos.ln + i + 1)) + 1)}| "
+            line: str = self.src[idx_start:idx_end].replace("\n", "")
             col_start: int = self.start_pos.col if i == 0 else 0
             col_end: int = self.end_pos.col if i == line_count - 1 else len(line) - 1
 
-            line = f"{Colors.white(line[0:col_start])}{Colors.bright_white(line[col_start:col_end])}{Colors.bright_black(line[col_end:len(line)])}"
-
-            result += Colors.bright_black(line_number) + line + "\n"
-            result += f"{' ' * (len(line_number) - 4)}{Colors.bright_black('  | ')}{' ' * col_start}{Colors.bright_red('^') * (col_end - col_start)}"
+            if self.end_pos.ln < self.start_pos.ln + i:
+                line = f"{Colors.bright_black(line)}"
+                result += Colors.bright_black(line_number) + line + "\n"
+            else:
+                line = f"{Colors.white(line[0:col_start])}{Colors.bright_white(line[col_start:col_end+1])}{Colors.bright_black(line[col_end+1:len(line)])}"
+                result += Colors.bright_black(line_number) + line + "\n"
+                result += f"{' ' * (len(line_number) - 4)}{Colors.bright_black('  | ')}{' ' * col_start}{Colors.bright_red('^') * (col_end - col_start+1)}\n"
 
             idx_start = idx_end
             idx_end = self.src.find("\n", idx_start + 1)
@@ -179,9 +186,19 @@ class ReferenceError(RTError):
             self,
             start_pos,
             end_pos,
-            details,
+            f"ReferenceError: {details}",
             context,
             help_text,
+        )
+
+class ValueError(RTError):
+    def __init__(self, details: str, start_pos: Position|None, end_pos: Position|None, context):
+        RTError.__init__(
+            self,
+            start_pos, #type:ignore
+            end_pos, #type:ignore
+            f"ValueError: {details}",
+            context,
         )
 
 
@@ -191,6 +208,16 @@ class TypeError(RTError):
             self,
             start_pos,
             end_pos,
-            details,
+            f"TypeError: {details}",
+            context,
+        )
+
+class IndexOutOfBoundsError(RTError):
+    def __init__(self, details: str, start_pos: Position, end_pos: Position, context):
+        RTError.__init__(
+            self,
+            start_pos,
+            end_pos,
+            f"IndexOutOfBounds: {details}",
             context,
         )
