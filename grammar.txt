@@ -1,0 +1,64 @@
+*  -> Many
+*! -> Required one or many
++  -> Permuted many
+|  -> Or
+?  -> Optional
+
+statements : NL* statement (NL*! statement)* NL*
+
+statement  : KWRD:return expr? 
+           : KWRD:continue
+           : KWRD:break
+           : expr
+
+expr       : KWRD:var IDENT ASSIGN expr
+           : IDENT (ASSIGN | SUMASSIGN | SUBASSIGN | MULASSIGN | DIVASSIGN | POWASSIGN | MODASSIGN) expr
+           : IDENT (INC | DEC)
+           : comp-expr ((KWRD:and | KWRD:or) comp-expr)*
+           
+comp-expr  : KWRD:not comp-expr
+           : arith-expr ((EQ | LT | GT | LTE | GTE | KWRD:in) arith-expr)*
+
+arith-expr : term ((PLUS | MINUS | AT) term)*
+    
+term       : factor ((MUL | DIV) factor)*
+   
+factor     : (PLUS | MINUS) factor
+           : power
+   
+power      : call (POW factor)*
+
+call       : atom (LPAREN (expr (COMMA expr)*)? RPAREN)?
+   
+atom       : INT | FLOAT | BOOLEAN | NIL | STRING | IDENT
+           : LPAREN expr RPAREN
+           : fmt-string
+           : if-expr
+           : while-expr
+           : func-expr
+           : list-expr
+
+fmt-string : BACKTICK ((DOLLAR LBRACE expr RBRACE)* + STRING) BACKTICK
+
+list-expr : LBRACK (expr (COMMA expr)*)? RBRACK
+
+if-expr    : KWRD:if expr KWRD:then
+             (statement (elif-expr|else-expr)?)
+           | (NL statements (KWRD:end | elif-expr | else-expr))
+
+elif-expr  : KWRD:elif expr KWRD:then
+             (statement (elif-expr|else-expr)?)
+           | (NL statements (KWRD:end | elif-expr | else-expr))
+
+else-expr  : KWRD:else 
+             statement
+           | (NL statements KWRD:end)
+
+while-expr : KWRD:while expr KWRD:do 
+             statement 
+           | (NL statements KWRD:end)
+
+func-expr  : KWRD:fn IDENT? 
+             (LPAREN (IDENT (COMMA IDENT)*)? RPAREN)? 
+           | ((ARROW | KWRD:do) expr )
+           | (NL KWRD:end statements KWRD:end)
