@@ -128,25 +128,57 @@ class Value:
 
 class RTResult:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.error: Error | None = None
         self.value: Value | None = None
+        self.fn_ret_val: Value | None = None
+        self.loop_should_continue: bool = False
+        self.loop_should_break: bool = False
 
     def register(self, res: Any) -> Value:
         if isinstance(res, RTResult):
-            if res.error:
+            if res.should_return():
                 self.error = res.error
-            ##! I have no clue on how to fix the following line without breaking the rest of the code
-            ##! If anyone reading this has any idea please submit a pr, thanks in advance :)
+                self.fn_ret_val = res.fn_ret_val
+                self.loop_should_break = res.loop_should_break
+                self.loop_should_continue = res.loop_should_continue
             return res.value  # type: ignore
         return res
 
     def success(self, value: Value) -> Self:
+        self.reset()
         self.value = value
         return self
 
+    def success_return(self, value: Value) -> Self:
+        self.reset()
+        self.fn_ret_val = value
+        return self
+
+    def success_continue(self) -> Self:
+        self.reset()
+        self.loop_should_continue = True
+        return self
+
+    def success_break(self) -> Self:
+        self.reset()
+        self.loop_should_break = True
+        return self
+
     def failure(self, error: Error):
+        self.reset()
         self.error = error
         return self
+
+    def should_return(self):
+        return (
+            self.error
+            or self.fn_ret_val
+            or self.loop_should_continue
+            or self.loop_should_break
+        )
 
 
 class Number(Value):
