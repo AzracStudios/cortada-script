@@ -9,17 +9,28 @@ from typing import Self, Any
 class ParseResult:
     def __init__(self):
         self.error: Error | None = None
+        self.error_cache: Error | None = None
         self.node: Node | None = None
         self.advance_count = 0
+        self.to_reverse_count = 0
+        self.last_registered_advance_count = 0
 
     def register_advance(self) -> None:
         self.advance_count += 1
 
     def register(self, res: Self) -> Node:
+        self.last_registered_advance_count = res.advance_count
         self.advance_count += res.advance_count
         if res.error:
             self.error = res.error
         return res.node  # type: ignore
+
+    def try_register(self, res: Self):
+        if res.error:
+            self.to_reverse_count = res.advance_count
+            self.error_cache = res.error
+            return None
+        return self.register(res)
 
     def success(self, node: Node) -> Self:
         self.node = node
@@ -39,8 +50,16 @@ class Parser:
 
     def advance(self):
         self.tok_idx += 1
+        self.update_cur_tok()
+        return self.cur_tok
 
-        if self.tok_idx < len(self.tokens):
+    def reverse(self, amount=1):
+        self.tok_idx -= amount
+        self.update_cur_tok()
+        return self.cur_tok
+
+    def update_cur_tok(self):
+        if self.tok_idx >= 0 and self.tok_idx < len(self.tokens):
             self.cur_tok = self.tokens[self.tok_idx]
 
         return self.cur_tok
