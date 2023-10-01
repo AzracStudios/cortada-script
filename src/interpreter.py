@@ -42,6 +42,11 @@ class SymbolTable:
 
 
 class Value:
+    def __init__(self):
+        self.type_name = None
+        self.set_pos()
+        self.set_context()
+
     def set_pos(
         self, start_pos: Position | None = None, end_pos: Position | None = None
     ) -> Self:
@@ -68,7 +73,16 @@ class Value:
     def divided_by(self, other: Self) -> tuple[Self | None, Error | None]:
         return (None, self.illegal_operation())
 
+    def flrdiv_by(self, other: Self) -> tuple[Self | None, Error | None]:
+        return (None, self.illegal_operation())
+
+    def mod_of(self, other: Self) -> tuple[Self | None, Error | None]:
+        return (None, self.illegal_operation())
+
     def raised_to(self, other: Self) -> tuple[Self | None, Error | None]:
+        return (None, self.illegal_operation())
+
+    def indexed_at(self, other: Self) -> tuple[Self | None, Error | None]:
         return (None, self.illegal_operation())
 
     def comp_eq(self, other: Self) -> tuple[Self | None, Error | None]:
@@ -95,6 +109,9 @@ class Value:
     def comp_or(self, other: Self) -> tuple[Self | None, Error | None]:
         return (None, self.illegal_operation())
 
+    def comp_in(self, other: Self) -> tuple[Self | None, Error | None]:
+        return (None, self.illegal_operation())
+
     def unary_not(self) -> tuple[Self | None, Error | None]:
         return (None, self.illegal_operation())
 
@@ -105,21 +122,20 @@ class Value:
         raise Exception("Copy Method Not Implemented")
 
     def execute(self, args) -> tuple[Self | None, Error | None]:
-        return (
-            None,
+        return RTResult().failure(
             TypeError(
-                f"Cannot call {type(self)}",
+                f"Cannot call {self.type_name}",
                 self.start_pos,  # type:ignore
                 self.end_pos,  # type:ignore
                 self.context,  # type:ignore
-            ),
+            )
         )
 
     def illegal_operation(self, other=None):
         if not other:
             other = self
         return TypeError(
-            f"Illegal operation for {type(self)} and {type(other)}",
+            f"Illegal operation for {self.__class__.__name__} and {other.__class__.__name__}",
             self.start_pos,  # type:ignore
             self.end_pos,  # type:ignore
             self.context,  # type:ignore
@@ -184,6 +200,7 @@ class RTResult:
 class Number(Value):
     def __init__(self, value: int | float):
         self.value = value
+        self.type_name = "Number"
         self.set_pos()
         self.set_context()
 
@@ -220,6 +237,24 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
+    def flrdiv_by(self, other: Value) -> tuple[Self | None, Error | None]:
+        if isinstance(other, Number):
+            if other.value == 0:
+                return Number(float("inf")), None
+            return Number(self.value // other.value).set_context(self.context), None
+
+        else:
+            return None, self.illegal_operation(other)
+
+    def mod_of(self, other: Value) -> tuple[Self | None, Error | None]:
+        if isinstance(other, Number):
+            if other.value == 0:
+                return Number(float("inf")), None
+            return Number(self.value % other.value).set_context(self.context), None
+
+        else:
+            return None, self.illegal_operation(other)
+
     def raised_to(self, other: Value) -> tuple[Self | None, Error | None]:
         if isinstance(other, Number):
             return Number(self.value**other.value).set_context(self.context), None
@@ -228,18 +263,10 @@ class Number(Value):
             return None, self.illegal_operation(other)
 
     def comp_eq(self, other: Self) -> tuple[Self | None, Error | None]:
-        if isinstance(other, Number):
-            return Boolean(self.value == other.value).set_context(self.context), None
-
-        else:
-            return None, self.illegal_operation(other)
+        return Boolean(self.value == other.value).set_context(self.context), None
 
     def comp_neq(self, other: Self) -> tuple[Self | None, Error | None]:
-        if isinstance(other, Number):
-            return Boolean(self.value != other.value).set_context(self.context), None
-
-        else:
-            return None, self.illegal_operation(other)
+        return Boolean(self.value != other.value).set_context(self.context), None
 
     def comp_lt(self, other: Self) -> tuple[Self | None, Error | None]:
         if isinstance(other, Number):
@@ -293,6 +320,17 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
+    def comp_in(self, other: Any) -> tuple[Self | None, Error | None]:
+        if isinstance(other, List):
+            contains = False
+            for i in other.value:
+                if self.value == i.value:  # type:ignore
+                    contains = True
+                    break
+
+            return Boolean(contains).set_context(self.context), None
+        return None, self.illegal_operation(other)
+
     def unary_not(self) -> tuple[Self | None, Error | None]:
         return Boolean(not self.value).set_context(self.context), None
 
@@ -311,6 +349,7 @@ class Number(Value):
 
 class Boolean(Number):
     def __init__(self, value: bool):
+        self.type_name = "Boolean"
         Number.__init__(self, int(value))
 
     def copy(self) -> Self:
@@ -325,6 +364,7 @@ class Boolean(Number):
 
 class Nil(Number):
     def __init__(self):
+        self.type_name = "Nil"
         Number.__init__(self, 0)
 
     def copy(self) -> Self:
@@ -339,17 +379,87 @@ class Nil(Number):
 
 class String(Value):
     def __init__(self, value: str):
+        self.type_name = "String"
         self.value = value
-        Value.__init__(self)
+        super().__init__()
 
     def added_to(self, other: Self) -> tuple[Self | None, Error | None]:
-        return String(self.value + f"{other.value}").set_context(self.context), None
+        return (
+            String(self.value + f"{other.get_value()}").set_context(self.context),
+            None,
+        )
 
     def multiplied_by(self, other: Number) -> tuple[Self | None, Error | None]:
         if isinstance(other, Number):
             return String(self.value * int(other.value)).set_context(self.context), None
         else:
             return None, Value.illegal_operation(self, other)
+
+    def indexed_at(self, other: Number) -> tuple[Self | None, Error | None]:
+        if isinstance(other, Number):
+            if not (other.value < len(self.value) and other.value >= 0):
+                return None, IndexOutOfBoundsError(
+                    f"Expected index within range 0 to {len(self.value) - 1}, got {other.value}",
+                    other.start_pos,  # type: ignore
+                    other.end_pos,  # type: ignore
+                    self.context,
+                )
+            return String(self.value[int(other.value)]).set_context(self.context), None
+        else:
+            return None, Value.illegal_operation(self, other)
+
+    def comp_eq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        return Boolean(self.value == other.value).set_context(self.context), None
+
+    def comp_neq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        return Boolean(self.value != other.value).set_context(self.context), None
+
+    def comp_lt(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        if isinstance(other, String):
+            return Boolean(self.value < other.value).set_context(self.context), None
+
+        else:
+            return None, self.illegal_operation(other)
+
+    def comp_gt(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        if isinstance(other, String):
+            return Boolean(self.value > other.value).set_context(self.context), None
+
+        else:
+            return None, self.illegal_operation(other)
+
+    def comp_lte(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        if isinstance(other, String):
+            return Boolean(self.value <= other.value).set_context(self.context), None
+
+        else:
+            return None, self.illegal_operation(other)
+
+    def comp_gte(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        if isinstance(other, String):
+            return Boolean(self.value >= other.value).set_context(self.context), None
+
+        else:
+            return None, self.illegal_operation(other)
+
+    def comp_and(self, other: Self) -> tuple[Self | None, Error | None]:
+        return String(other.value).set_context(self.context), None
+
+    def comp_or(self, other: Self) -> tuple[Self | None, Error | None]:
+        return String(self.value).set_context(self.context), None
+
+    def comp_in(self, other: Any) -> tuple[Boolean | None, Error | None]:
+        if isinstance(other, List):
+            contains = False
+            for i in other.value:
+                if self.value == i.value:  # type: ignore
+                    contains = True
+                    break
+
+            return Boolean(contains).set_context(self.context), None
+        elif isinstance(other, String):
+            return Boolean(self.value in other.value).set_context(self.context), None
+        return None, self.illegal_operation(other)
 
     def get_value(self, context: Context | None = None):
         return self.value
@@ -367,22 +477,64 @@ class String(Value):
         return f'"{self.value}"' if inc_quotes else f"{self.value}"
 
 
-class Function(Value):
-    def __init__(self, name, body, args):
-        self.name = name or "<anonymous>"
-        self.body = body
-        self.args = args
+class List(Value):
+    def __init__(self, elements: list[Value]) -> None:
+        self.type_name = "List"
+        self.value: list[Value] = elements
+        super().__init__()
 
-        Value.__init__(self)
+    def copy(self):
+        return (
+            List(self.value)
+            .set_pos(self.start_pos, self.end_pos)
+            .set_context(self.context)
+        )
 
-    def copy(self) -> Self:
-        copy = Function(self.name, self.body, self.args)
-        copy.set_context(self.context)
-        copy.set_pos(self.start_pos, self.end_pos)
-        return copy
+    def is_true(self) -> bool | Error:
+        return len(self.value) > 0
 
-    def execute(self, args) -> RTResult:
-        res = RTResult()
+    def indexed_at(self, other: Number) -> tuple[Any | None, Error | None]:
+        if isinstance(other, Number):
+            if not (other.value < len(self.value) and other.value >= 0):
+                return None, IndexOutOfBoundsError(
+                    f"Expected index within range 0 to {len(self.value) - 1}, instead got {other.value}",
+                    other.start_pos,  # type: ignore
+                    other.end_pos,  # type: ignore
+                    self.context,
+                )
+
+            return (
+                self.value[int(other.value)].set_context(  # type:ignore
+                    self.context
+                ),
+                None,
+            )
+
+        else:
+            return None, Value.illegal_operation(self, other)
+
+    def comp_eq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        return Boolean(self.value == other.value).set_context(self.context), None
+
+    def comp_neq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        return Boolean(self.value != other.value).set_context(self.context), None
+
+    def comp_in(self, other: Self) -> tuple[Boolean | None, Error | None]:
+        return Boolean(self.value in other.value).set_context(self.context), None
+
+    def get_value(self, context: Context | None = None):
+        return self.value
+
+    def __repr__(self):
+        string = "["
+        for i, element in enumerate(self.value):
+            if i < len(self.value) - 1:
+                string += f"{element}, "
+            else:
+                string += f"{element}]"
+        return string if len(self.value) > 0 else string + "]"
+
+
         new_context = Context(self.name, self.context, self.start_pos)
         new_context.symbol_table = SymbolTable(
             new_context.parent.symbol_table  # type:ignore
