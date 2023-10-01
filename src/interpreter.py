@@ -535,36 +535,215 @@ class List(Value):
         return string if len(self.value) > 0 else string + "]"
 
 
+class BaseFunction(Value):
+    def __init__(self, name):
+        super().__init__()
+        self.type_name = "Function"
+        self.name = name or "<anonymous>"
+
+    def generate_new_context(self):
         new_context = Context(self.name, self.context, self.start_pos)
         new_context.symbol_table = SymbolTable(
             new_context.parent.symbol_table  # type:ignore
         )
 
-        if len(args) != len(self.args):
+        return new_context
+
+    def check_args(self, arg_names, args):
+        res = RTResult()
+        if len(arg_names) != len(args):
             return res.failure(
                 TypeError(
-                    f"{self.name} takes in {len(self.args)} args. {args} {'args were' if args > 1 else 'arg was'} given",
+                    f"{self.name} takes in {len(arg_names)} args. {len(args)} {'arg was' if len(args) == 1 else 'args were'} given",
                     self.start_pos,  # type:ignore
                     self.end_pos,  # type:ignore
                     self.context,  # type:ignore
                 )
             )
 
-        for i in range(len(args)):
-            arg_name = self.args[i]
-            arg_val = args[i]
-            arg_val.set_context(new_context)
-            new_context.symbol_table.set(arg_name, arg_val)
+        return res.success(None)  # type: ignore
 
-        val = res.register(Interpreter.visit(self.body, new_context))
+    def populate_args(self, arg_names, args, context):
+        for i in range(len(args)):
+            arg_name = arg_names[i]
+            arg_val = args[i]
+            arg_val.set_context(context)
+            context.symbol_table.set(arg_name, arg_val)
+
+    def check_and_populate_args(self, arg_names, args, context):
+        res = RTResult()
+        res.register(self.check_args(arg_names, args))
+        if res.error:
+            return res
+        res.register(self.populate_args(arg_names, args, context))
+        return res.success(None)  # type: ignore
+
+
+class Function(BaseFunction):
+    def __init__(self, name, body, args, should_auto_return):
+        super().__init__(name)
+        self.body = body
+        self.args = args
+        self.should_auto_return = should_auto_return
+
+    def copy(self) -> Self:
+        copy = Function(self.name, self.body, self.args, self.should_auto_return)
+        copy.set_context(self.context)
+        copy.set_pos(self.start_pos, self.end_pos)
+        return copy
+
+    def execute(self, args) -> RTResult:
+        res = RTResult()
+        new_context = self.generate_new_context()
+        res.register(self.check_and_populate_args(self.args, args, new_context))
         if res.error:
             return res
 
-        return res.success(val)
+        val = res.register(Interpreter.visit(self.body, new_context))
+        if res.should_return() and res.fn_ret_val == None:
+            return res
+
+        ret_value = (
+            (val if self.should_auto_return else None) or res.fn_ret_val or Nil()
+        )
+
+        return res.success(ret_value)
 
     def __repr__(self):
         return f"<function {self.name}>"
 
+
+class BuiltinFunction(BaseFunction):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def execute(self, args):
+        res = RTResult()
+        context = self.generate_new_context()
+        method_name = f"execute_{self.name}"
+        method = getattr(self, method_name, self.no_visit_method)
+
+        res.register(self.check_and_populate_args(method.arg_names, args, context))
+        if res.error:
+            return res
+
+        return_value = res.register(method(context))  # type:ignore
+        if res.error:
+            return res
+
+        return res.success(return_value)
+
+    def copy(self):
+        copy = BuiltinFunction(self.name)
+        return copy
+
+    def __repr__(self):
+        return f"<builtin-fn {self.name}>"
+
+    def no_visit_method(self):
+        raise Exception(f"No execute_{self.name} method defined")
+
+    def execute_print(self, context: Context):
+        val = context.symbol_table.get("value")
+        if type(val) != String:
+            val = String(val)
+        print(val.__repr__(False))
+        return RTResult().success(Nil())
+
+    execute_print.arg_names = ["value"]
+
+    def execute_print_eol(self, context: Context):
+        val = context.symbol_table.get("value")
+        eol = context.symbol_table.get("eol")
+        if type(val) != String:
+            val = String(val)
+        print(val.__repr__(False), end=eol.__repr__(False))
+        return RTResult().success(Nil())
+
+    execute_print_eol.arg_names = ["value", "eol"]
+
+    def execute_hello_world(self, context: Context):
+        print(
+            """
+        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@        
+        @@                                 @@
+        @@      @                          @@@@@@@@
+        @@      @                          @@     @@
+        @@      @                         @@      @@@
+         @@      @                       @@       @@
+          @@                            @@@@@@@@@@
+           @@                         @@
+             @@@                   @@@              
+               @@@@@@@@@@@@@@@@@@@@@                
+
+               Cortada Script - v1.0
+      
+                    Hello world!
+    """
+        )
+        return RTResult().success(Nil())
+
+    execute_hello_world.arg_names = []
+
+    def execute_input(self, context: Context):
+        prompt = context.symbol_table.get("prompt")
+        if type(prompt) != String:
+            prompt = String(prompt)
+
+        text = input(prompt.__repr__(inc_quotes=False))
+        return RTResult().success(String(text))
+
+    execute_input.arg_names = ["prompt"]
+
+    def execute_to_int(self, context: Context):
+        val_to_cvt = context.symbol_table.get("val_to_cvt")
+        cvted_val = None
+
+        try:
+            if not ("." in val_to_cvt):
+                cvted_val = int(val_to_cvt)
+            else:
+                return RTResult().success(Nil())
+        except:
+            return RTResult().success(Nil())
+
+        return RTResult().success(Number(cvted_val))
+
+    execute_to_int.arg_names = ["val_to_cvt"]
+
+    def execute_to_float(self, context: Context):
+        val_to_cvt = context.symbol_table.get("val_to_cvt")
+        cvted_val = None
+
+        try:
+            cvted_val = float(val_to_cvt)
+        except:
+            return RTResult().success(Nil())
+
+        return RTResult().success(Number(cvted_val))
+
+    execute_to_int.arg_names = ["val_to_cvt"]
+
+    def execute_type(self, context: Context):
+        val = context.symbol_table.get("val")
+        return RTResult().success(String(val.type_name))
+
+    execute_type.arg_names = ["val"]
+
+    def execute_clear(self, context: Context):
+        os.system("cls" if os.name == "nt" else "clear")
+        return RTResult().success(Nil())
+
+    execute_clear.arg_names = []
+
+
+BuiltinFunction.print = BuiltinFunction("print")  # type:ignore
+BuiltinFunction.print_eol = BuiltinFunction("print_eol")  # type:ignore
+BuiltinFunction.hello_world = BuiltinFunction("hello_world")  # type:ignore
+BuiltinFunction.input = BuiltinFunction("input")  # type:ignore
+BuiltinFunction.clear = BuiltinFunction("clear")  # type:ignore
+BuiltinFunction.to_num = BuiltinFunction("to_num")  # type:ignore
+BuiltinFunction.type = BuiltinFunction("type")  # type:ignore
 
 #############################
 
