@@ -65,7 +65,8 @@ class Parser:
         return self.cur_tok
 
     def parse(self):
-        res: ParseResult = self.expr()
+        res: ParseResult = self.statements()
+
         if not res.error and self.cur_tok.type != TT_EOF:
             return res.failure(
                 InvalidSyntax(
@@ -76,6 +77,83 @@ class Parser:
             )
         return res
 
+    def statements(self) -> ParseResult:
+        res = ParseResult()
+        statements = []
+        start_pos = self.cur_tok.start_pos.copy()
+        more_statements = False
+
+        while self.cur_tok.type == TT_NL:
+            res.register_advance()
+            self.advance()
+
+        statement = res.register(self.statement())
+        if res.error:
+            return res
+        statements.append(statement)
+
+        more_statements = True
+
+
+        while True:
+            nl_count = 0
+
+            while self.cur_tok.type == TT_NL:
+                res.register_advance()
+                self.advance()
+                nl_count += 1
+
+            if nl_count == 0:
+                more_statements = False
+
+            if not more_statements:
+                break
+
+            statement = res.try_register(self.statement())
+            if res.error_cache and res.to_reverse_count > 0:
+                res.error = res.error_cache
+                self.advance()
+                return res
+            
+            if not statement:
+                self.reverse(res.to_reverse_count)
+                more_statements = False
+                continue
+
+
+            statements.append(statement)
+        
+        return res.success(ListNode(statements, start_pos, self.cur_tok.end_pos.copy()))
+
+    def statement(self) -> ParseResult:
+        res = ParseResult()
+        start_pos = self.cur_tok.start_pos.copy()
+
+        if self.cur_tok.matches(TT_KWRD, "return"):
+            res.register_advance()
+            self.advance()
+
+            expr_to_ret = res.try_register(self.expr())
+            if not expr_to_ret:
+                self.reverse(res.to_reverse_count)
+            return res.success(ReturnNode(expr_to_ret, start_pos, self.cur_tok.end_pos))
+
+        if self.cur_tok.matches(TT_KWRD, "continue"):
+            res.register_advance()
+            self.advance()
+
+            return res.success(ContinueNode(start_pos, self.cur_tok.end_pos))
+
+        if self.cur_tok.matches(TT_KWRD, "break"):
+            res.register_advance()
+            self.advance()
+
+            return res.success(BreakNode(start_pos, self.cur_tok.end_pos))
+
+        expr = res.register(self.expr())
+        if res.error:
+            return res
+        return res.success(expr)
     def expr(self) -> ParseResult:
         res = ParseResult()
         init = False
@@ -89,7 +167,11 @@ class Parser:
             hint = None
 
             if self.cur_tok.type in (TT_INT, TT_FLOAT):
-                hint = f"Identifiers can't begin with a number. Try removing the '{self.cur_tok.value}' at the beginning, or add an underscore infront of it"
+                if self.tok_idx + 1 < len(self.tokens):
+                    if self.tokens[self.tok_idx + 1].type in (TT_IDENT, TT_KWRD):
+                        hint = f"Identifiers can't begin with a number. Try removing the '{self.cur_tok.value}' at the beginning, or add an underscore infront of it"
+                    else:
+                        hint = f"Numbers can't be used as identifiers. Try changing '{self.cur_tok.value}' to a valid identifier, or add an underscore infront of it"
 
             return res.failure(
                 InvalidSyntax(
