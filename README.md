@@ -10,71 +10,66 @@ Here are some examples of CortadaScript (files in the examples directory):
 Hello world:
 
 ```
-include core
-
-fn main do
-    core.ascii_cup()
-    print(`${' ' * 20}Hello world!`)
+fn main do 
+    hello_world()
 end
+
+main()
 ```
 
 Fibonacci:
 
 ```
-var memo = {}
+var memo = []
 
 fn fib(n) do
-    var a, b, c, i = 1, 0, 0, 0
+    var a = 1
+    var b = 0
+    var c = 0
     
-    if n in memo then
-        return memo[n]
+    if length(memo) > n then
+        return memo @ n
     end
 
-    do until i < n 
-        a, b = b, c
+    var i = 0; while i < n  do
         c = a + b
+        a = b
+        b = c
         i ++
-    stop
+    end
     
-    memo[n] = c
+    ~ memo[n] = c
     return c
 end
 
 fn main do
-    var n = input("enter n: ") cast int
-    print(fib(n))
+    ~ var n = input("enter n: ")
+    var i = 0; while i < 10 do
+        print(fib(i))
+        i++
+    end
 end
+
+main()
 ```
 
 Calculator:
 ```
-fn calculator() do 
-    var num1 = input("num 1: ") cast int
-    var num2 = input("num 2: ") cast int
-    var op = input("op: ") cast int
+fn calculator do 
+    var num1 = to_int(input("num 1: "))
+    var num2 = to_int(input("num 2: "))
+    var op = input("op: ")
 
     var res = 0
 
-    switch op do
-        case "+" do
-            res = num1 + num2
-        end
-
-        case "-" do 
-            res = num1 - num2
-        end
-
-        case "*" do
-            res = num1 * num2
-        end
-
-        case "/" do
-            if num2 == 0 then
-                throw ("Division by 0!")
-            end
-
-            res = num1 / num2
-        end
+    if op == "+" then
+        res = num1 + num2
+    elif op == "-" then
+        res = num1 - num2
+    elif op == "*" then
+        res = num1 * num2
+    elif op == "/" then
+        res = num1 / num2
     end
 
     return res
@@ -83,9 +78,11 @@ end
 fn main do
     var run = true
 
-    do until run
+    while run do
         print(calculator())
-        run = input("again? [y/n]: ") == "y"
-    stop
+        run = input("\nagain? [y/n]: ") == "y"
+    end
 end
+
+main()
 ```
