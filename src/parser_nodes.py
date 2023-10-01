@@ -55,6 +55,18 @@ class NilNode(Node):
         return f"{self.tok}"
 
 
+class ListNode(Node):
+    def __init__(
+        self, element_nodes: list[Node], start_pos: Position, end_pos: Position
+    ):
+        self.element_nodes = element_nodes
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+
+    def __repr__(self):
+        return f"{self.element_nodes}"
+
+
 class BinaryOperatorNode(Node):
     def __init__(self, left_node: Node, op_tok: Token, right_node: Node):
         self.left_node: Node = left_node
@@ -74,6 +86,7 @@ class UnaryOperatorNode(Node):
 
     def __repr__(self):
         return f"({self.op_tok} {self.right_node})"
+
 
 
 class VariableInitNode(Node):
@@ -106,30 +119,38 @@ class VariableAccessNode(Node):
 
 
 class IfNode(Node):
-    def __init__(self, cases: list[tuple[Node, Node]], else_case: Node | None):
+    def __init__(
+        self, cases: list[tuple[Node, Node, bool]], else_case: tuple[Node, bool] | None
+    ):
         self.cases = cases
         self.else_case = else_case
         Node.__init__(
             self,
             self.cases[0][0].start_pos,
-            (self.else_case or self.cases[len(self.cases) - 1][0]).end_pos,
+            (self.else_case or self.cases[len(self.cases) - 1])[0].end_pos,
         )
 
 
 class WhileNode(Node):
-    def __init__(self, condition: Node, do: Node):
+    def __init__(self, condition: Node, do: Node, should_return_nil: bool):
         self.condition = condition
         self.do = do
         Node.__init__(self, self.condition.start_pos, do.end_pos)
+        self.should_return_nil = should_return_nil
 
 
 class FnDefNode(Node):
     def __init__(
-        self, var_name: Token | None, arg_names: list[Token] | None, body: Node
+        self,
+        var_name: Token | None,
+        arg_names: list[Token] | None,
+        body: Node,
+        should_auto_return: bool,
     ):
         self.var_name = var_name
         self.arg_names = arg_names
         self.body = body
+        self.should_auto_return = should_auto_return
 
         Node.__init__(
             self,
@@ -150,3 +171,22 @@ class CallNode(Node):
             self.to_call.start_pos,
             (self.args[len(self.args) - 1] if self.args else self.to_call).end_pos,
         )
+
+
+class ReturnNode(Node):
+    def __init__(self, to_return: Node | None, start_pos: Position, end_pos: Position):
+        self.to_return = to_return
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+
+
+class ContinueNode(Node):
+    def __init__(self, start_pos: Position, end_pos: Position):
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+
+
+class BreakNode(Node):
+    def __init__(self, start_pos: Position, end_pos: Position):
+        self.start_pos = start_pos
+        self.end_pos = end_pos
