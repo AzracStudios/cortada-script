@@ -1,17 +1,15 @@
-from typing import Self
-
 class Position:
-    def __init__(self, idx: int, col: int, ln: int, file_name: str, file_src: str):
-        self.idx: int = idx
-        self.col: int = col
-        self.ln: int = ln
-        self.file_name: str = file_name
-        self.file_src: str = file_src
+    def __init__(self, idx, col, ln, file_name, file_src):
+        self.idx = idx
+        self.col = col
+        self.ln = ln
+        self.file_name = file_name
+        self.file_src = file_src
 
-    def copy(self) -> Self:
+    def copy(self):
         return Position(self.idx, self.col, self.ln, self.file_name, self.file_src)
 
-    def advance(self, char=None) -> Self:
+    def advance(self, char=None):
         self.idx += 1
         self.col += 1
 
@@ -21,5 +19,5 @@ class Position:
 
         return self
     
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"Ln: {self.ln + 1}, Col: {self.col}"

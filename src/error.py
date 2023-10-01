@@ -1,26 +1,25 @@
 from position import Position
 from color import Colors
-from type import ErrorType
 
 
 class Error:
     def __init__(
         self,
-        message: str,
-        src: str,
-        start_pos: Position,
-        end_pos: Position,
-        type: ErrorType,
-        help_text: str | None = None,
+        message,
+        src,
+        start_pos,
+        end_pos,
+        type,
+        help_text = None,
     ):
-        self.message: str = message
-        self.src: str = src
-        self.start_pos: Position = start_pos
-        self.end_pos: Position = end_pos
-        self.type: ErrorType = type
+        self.message = message
+        self.src = src
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+        self.type = type
         self.help_text = help_text
 
-    def generate_error_text(self) -> str:
+    def generate_error_text(self):
         res = f"{Colors.bright_red(f'{self.type} @ {str(self.start_pos)}')}\n"
         res += f"{Colors.bright_black('> ')}{Colors.red(self.message)}\n\n"
         res += self.generate_code_preview()
@@ -30,15 +29,15 @@ class Error:
 
         return f"{res}"
 
-    def generate_code_preview(self) -> str:
-        result: str = ""
+    def generate_code_preview(self):
+        result = ""
 
-        idx_start: int = max(self.src.rfind("\n", 0, self.start_pos.idx), 0)
-        idx_end: int = self.src.find("\n", idx_start + 1)
+        idx_start = max(self.src.rfind("\n", 0, self.start_pos.idx), 0)
+        idx_end = self.src.find("\n", idx_start + 1)
         if idx_end < 0:
             idx_end = len(self.src)
 
-        line_count: int = self.end_pos.ln - self.start_pos.ln + 1
+        line_count = self.end_pos.ln - self.start_pos.ln + 1
         if self.end_pos.ln > 1:
             line_count += 1
             
@@ -46,9 +45,9 @@ class Error:
         for i in range(line_count):
             sp = len(str(self.start_pos.ln + line_count))
             line_number = f"{self.start_pos.ln + i + 1}{' ' * (sp - len(str(self.start_pos.ln + i + 1)) + 1)}| "
-            line: str = self.src[idx_start:idx_end].replace("\n", "")
-            col_start: int = self.start_pos.col if i == 0 else 0
-            col_end: int = self.end_pos.col if i == line_count - 1 else len(line) - 1
+            line = self.src[idx_start:idx_end].replace("\n", "")
+            col_start = self.start_pos.col if i == 0 else 0
+            col_end = self.end_pos.col if i == line_count - 1 else len(line) - 1
 
             if self.end_pos.ln < self.start_pos.ln + i:
                 line = f"{Colors.bright_black(line)}"
@@ -70,9 +69,9 @@ class IllegalCharacter(Error):
     def __init__(
         self,
         char,
-        start_pos: Position,
-        end_pos: Position,
-        help_text: str | None = None,
+        start_pos,
+        end_pos,
+        help_text = None,
     ):
         Error.__init__(
             self,
@@ -88,9 +87,9 @@ class IllegalCharacter(Error):
 class UnterminatedString(Error):
     def __init__(
         self,
-        start_pos: Position,
-        end_pos: Position,
-        term_char: str,
+        start_pos,
+        end_pos,
+        term_char,
     ):
         char_text = '\'"\''
         if term_char == "'":
@@ -112,10 +111,10 @@ class UnterminatedString(Error):
 class InvalidSyntax(Error):
     def __init__(
         self,
-        details: str | None,
-        start_pos: Position,
-        end_pos: Position,
-        help_text: str | None = None,
+        details,
+        start_pos,
+        end_pos,
+        help_text = None,
     ):
         Error.__init__(
             self,
@@ -131,11 +130,11 @@ class InvalidSyntax(Error):
 class RTError(Error):
     def __init__(
         self,
-        start_pos: Position,
-        end_pos: Position,
-        details: str,
+        start_pos,
+        end_pos,
+        details,
         context,
-        help_text: str | None = None,
+        help_text = None,
     ):
         self.context = context
         Error.__init__(
@@ -148,7 +147,7 @@ class RTError(Error):
             help_text,
         )
 
-    def generate_error_text(self) -> str:
+    def generate_error_text(self):
         res = f"{self.generate_traceback()}\n"
         res += f"{Colors.bright_red(f'{self.type} @ {str(self.start_pos)}')}\n"
         res += f"{Colors.bright_black('> ')}{Colors.red(self.message)}\n\n"
@@ -159,7 +158,7 @@ class RTError(Error):
 
         return f"{res}"
 
-    def generate_traceback(self) -> str:
+    def generate_traceback(self):
         result = ""
         pos = self.start_pos
         ctx = self.context
@@ -176,11 +175,11 @@ class RTError(Error):
 class ReferenceError(RTError):
     def __init__(
         self,
-        details: str,
-        start_pos: Position,
-        end_pos: Position,
+        details,
+        start_pos,
+        end_pos,
         context,
-        help_text: str | None = None,
+        help_text = None,
     ):
         RTError.__init__(
             self,
@@ -192,18 +191,18 @@ class ReferenceError(RTError):
         )
 
 class ValueError(RTError):
-    def __init__(self, details: str, start_pos: Position|None, end_pos: Position|None, context):
+    def __init__(self, details, start_pos, end_pos, context):
         RTError.__init__(
             self,
-            start_pos, #type:ignore
-            end_pos, #type:ignore
+            start_pos,
+            end_pos, 
             f"ValueError: {details}",
             context,
         )
 
 
 class TypeError(RTError):
-    def __init__(self, details: str, start_pos: Position, end_pos: Position, context):
+    def __init__(self, details, start_pos, end_pos, context):
         RTError.__init__(
             self,
             start_pos,
@@ -213,7 +212,7 @@ class TypeError(RTError):
         )
 
 class IndexOutOfBoundsError(RTError):
-    def __init__(self, details: str, start_pos: Position, end_pos: Position, context):
+    def __init__(self, details, start_pos, end_pos, context):
         RTError.__init__(
             self,
             start_pos,

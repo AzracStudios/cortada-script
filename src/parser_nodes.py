@@ -3,14 +3,14 @@ from position import Position
 
 
 class Node:
-    def __init__(self, start_pos: Position, end_pos: Position):
+    def __init__(self, start_pos, end_pos):
         self.start_pos: Position = start_pos
         self.end_pos: Position = end_pos
 
 
 class NumberNode(Node):
-    def __init__(self, tok: Token):
-        self.tok: Token = tok
+    def __init__(self, tok):
+        self.tok = tok
         Node.__init__(self, self.tok.start_pos, self.tok.end_pos)
 
     def __repr__(self):
@@ -18,8 +18,8 @@ class NumberNode(Node):
 
 
 class StringNode(Node):
-    def __init__(self, tok: Token):
-        self.tok: Token = tok
+    def __init__(self, tok):
+        self.tok = tok
         Node.__init__(self, self.tok.start_pos, self.tok.end_pos)
 
     def __repr__(self):
@@ -27,7 +27,7 @@ class StringNode(Node):
 
 
 class FmtStringNode(Node):
-    def __init__(self, nodes: list[Node]):
+    def __init__(self, nodes):
         self.nodes = nodes
         Node.__init__(
             self, self.nodes[0].start_pos, self.nodes[len(self.nodes) - 1].end_pos
@@ -38,8 +38,8 @@ class FmtStringNode(Node):
 
 
 class BooleanNode(Node):
-    def __init__(self, tok: Token):
-        self.tok: Token = tok
+    def __init__(self, tok):
+        self.tok = tok
         Node.__init__(self, self.tok.start_pos, self.tok.end_pos)
 
     def __repr__(self):
@@ -47,7 +47,7 @@ class BooleanNode(Node):
 
 
 class NilNode(Node):
-    def __init__(self, tok: Token):
+    def __init__(self, tok):
         self.tok: Token = tok
         Node.__init__(self, self.tok.start_pos, self.tok.end_pos)
 
@@ -56,9 +56,7 @@ class NilNode(Node):
 
 
 class ListNode(Node):
-    def __init__(
-        self, element_nodes: list[Node], start_pos: Position, end_pos: Position
-    ):
+    def __init__(self, element_nodes, start_pos, end_pos):
         self.element_nodes = element_nodes
         self.start_pos = start_pos
         self.end_pos = end_pos
@@ -68,10 +66,10 @@ class ListNode(Node):
 
 
 class BinaryOperatorNode(Node):
-    def __init__(self, left_node: Node, op_tok: Token, right_node: Node):
-        self.left_node: Node = left_node
-        self.op_tok: Token = op_tok
-        self.right_node: Node = right_node
+    def __init__(self, left_node, op_tok, right_node):
+        self.left_node = left_node
+        self.op_tok = op_tok
+        self.right_node = right_node
         Node.__init__(self, self.left_node.start_pos, self.right_node.end_pos)
 
     def __repr__(self):
@@ -79,18 +77,17 @@ class BinaryOperatorNode(Node):
 
 
 class UnaryOperatorNode(Node):
-    def __init__(self, op_tok: Token, right_node: Node):
-        self.op_tok: Token = op_tok
-        self.right_node: Node = right_node
+    def __init__(self, op_tok, right_node):
+        self.op_tok = op_tok
+        self.right_node = right_node
         Node.__init__(self, self.op_tok.start_pos, self.right_node.end_pos)
 
     def __repr__(self):
         return f"({self.op_tok} {self.right_node})"
 
 
-
 class VariableInitNode(Node):
-    def __init__(self, var_name: Token, value: Node):
+    def __init__(self, var_name, value):
         self.var_name = var_name
         self.value = value
         Node.__init__(self, self.var_name.start_pos, self.value.end_pos)
@@ -100,7 +97,7 @@ class VariableInitNode(Node):
 
 
 class VariableAssignNode(Node):
-    def __init__(self, var_name: Token, value: Node):
+    def __init__(self, var_name, value):
         self.var_name = var_name
         self.value = value
         Node.__init__(self, self.var_name.start_pos, self.value.end_pos)
@@ -110,7 +107,7 @@ class VariableAssignNode(Node):
 
 
 class VariableAccessNode(Node):
-    def __init__(self, var_name: Token):
+    def __init__(self, var_name):
         self.var_name = var_name
         Node.__init__(self, self.var_name.start_pos, self.var_name.end_pos)
 
@@ -119,9 +116,7 @@ class VariableAccessNode(Node):
 
 
 class IfNode(Node):
-    def __init__(
-        self, cases: list[tuple[Node, Node, bool]], else_case: tuple[Node, bool] | None
-    ):
+    def __init__(self, cases, else_case):
         self.cases = cases
         self.else_case = else_case
         Node.__init__(
@@ -132,7 +127,7 @@ class IfNode(Node):
 
 
 class WhileNode(Node):
-    def __init__(self, condition: Node, do: Node, should_return_nil: bool):
+    def __init__(self, condition, do, should_return_nil):
         self.condition = condition
         self.do = do
         Node.__init__(self, self.condition.start_pos, do.end_pos)
@@ -142,10 +137,10 @@ class WhileNode(Node):
 class FnDefNode(Node):
     def __init__(
         self,
-        var_name: Token | None,
-        arg_names: list[Token] | None,
-        body: Node,
-        should_auto_return: bool,
+        var_name,
+        arg_names,
+        body,
+        should_auto_return,
     ):
         self.var_name = var_name
         self.arg_names = arg_names
@@ -162,7 +157,7 @@ class FnDefNode(Node):
 
 
 class CallNode(Node):
-    def __init__(self, to_call: Node, args: list[Node] | None):
+    def __init__(self, to_call, args):
         self.to_call = to_call
         self.args = args
 
@@ -174,19 +169,19 @@ class CallNode(Node):
 
 
 class ReturnNode(Node):
-    def __init__(self, to_return: Node | None, start_pos: Position, end_pos: Position):
+    def __init__(self, to_return, start_pos, end_pos):
         self.to_return = to_return
         self.start_pos = start_pos
         self.end_pos = end_pos
 
 
 class ContinueNode(Node):
-    def __init__(self, start_pos: Position, end_pos: Position):
+    def __init__(self, start_pos, end_pos):
         self.start_pos = start_pos
         self.end_pos = end_pos
 
 
 class BreakNode(Node):
-    def __init__(self, start_pos: Position, end_pos: Position):
+    def __init__(self, start_pos, end_pos):
         self.start_pos = start_pos
         self.end_pos = end_pos

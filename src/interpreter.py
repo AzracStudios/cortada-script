@@ -5,21 +5,20 @@ from constants import *
 from error import *
 from rank import rank
 from position import *
-from typing_extensions import Self
 import os
 
 
 class Context:
     def __init__(
         self,
-        display_name: str,
-        parent: Self | None = None,
-        parent_entry_pos: Position | None = None,
+        display_name,
+        parent = None,
+        parent_entry_pos = None,
     ) -> None:
         self.display_name = display_name
         self.parent = parent
         self.parent_entry_pos = parent_entry_pos
-        self.symbol_table: SymbolTable
+        self.symbol_table
 
 
 class SymbolTable:
@@ -49,87 +48,87 @@ class Value:
         self.set_context()
 
     def set_pos(
-        self, start_pos: Position | None = None, end_pos: Position | None = None
+        self, start_pos = None, end_pos = None
     ) -> Self:
         self.start_pos = start_pos
         self.end_pos = end_pos
         return self
 
-    def set_context(self, context: Context | None = None):
+    def set_context(self, context = None):
         self.context = context
         return self
 
-    def added_to(self, other: Self) -> tuple[Self | None, Error | None]:
+    def added_to(self, other):
         return (None, self.illegal_operation())
 
-    def subtracted_by(self, other: Self) -> tuple[Self | None, Error | None]:
+    def subtracted_by(self, other):
         return (None, self.illegal_operation())
 
-    def multiplied_by(self, other: Self) -> tuple[Self | None, Error | None]:
+    def multiplied_by(self, other):
         return (None, self.illegal_operation())
 
-    def divided_by(self, other: Self) -> tuple[Self | None, Error | None]:
+    def divided_by(self, other):
         return (None, self.illegal_operation())
 
-    def flrdiv_by(self, other: Self) -> tuple[Self | None, Error | None]:
+    def flrdiv_by(self, other):
         return (None, self.illegal_operation())
 
-    def mod_of(self, other: Self) -> tuple[Self | None, Error | None]:
+    def mod_of(self, other):
         return (None, self.illegal_operation())
 
-    def raised_to(self, other: Self) -> tuple[Self | None, Error | None]:
+    def raised_to(self, other):
         return (None, self.illegal_operation())
 
-    def indexed_at(self, other: Self) -> tuple[Self | None, Error | None]:
+    def indexed_at(self, other):
         return (None, self.illegal_operation())
 
-    def comp_eq(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_eq(self, other):
         return (None, self.illegal_operation())
 
-    def comp_neq(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_neq(self, other):
         return (None, self.illegal_operation())
 
-    def comp_lt(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_lt(self, other):
         return (None, self.illegal_operation())
 
-    def comp_gt(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_gt(self, other):
         return (None, self.illegal_operation())
 
-    def comp_lte(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_lte(self, other):
         return (None, self.illegal_operation())
 
-    def comp_gte(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_gte(self, other):
         return (None, self.illegal_operation())
 
-    def comp_and(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_and(self, other):
         return (None, self.illegal_operation())
 
-    def comp_or(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_or(self, other):
         return (None, self.illegal_operation())
 
-    def comp_in(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_in(self, other):
         return (None, self.illegal_operation())
 
-    def unary_not(self) -> tuple[Self | None, Error | None]:
+    def unary_not(self):
         return (None, self.illegal_operation())
 
-    def is_true(self) -> bool | Error:
+    def is_true(self):
         return self.illegal_operation()
 
     def copy(self):
         raise Exception("Copy Method Not Implemented")
 
-    def execute(self, args) -> tuple[Self | None, Error | None]:
+    def execute(self, args):
         return RTResult().failure(
             TypeError(
                 f"Cannot call {self.type_name}",
-                self.start_pos,  # type:ignore
-                self.end_pos,  # type:ignore
-                self.context,  # type:ignore
+                self.start_pos,
+                self.end_pos,  
+                self.context,  
             )
         )
 
-    def get_value(self, context: Context | None = None):
+    def get_value(self, context=None):
         return self.value
     
     def illegal_operation(self, other=None):
@@ -137,9 +136,9 @@ class Value:
             other = self
         return TypeError(
             f"Illegal operation for {self.__class__.__name__} and {other.__class__.__name__}",
-            self.start_pos,  # type:ignore
-            self.end_pos,  # type:ignore
-            self.context,  # type:ignore
+            self.start_pos, 
+            self.end_pos, 
+            self.context,
         )
 
 
@@ -148,43 +147,43 @@ class RTResult:
         self.reset()
 
     def reset(self):
-        self.error: Error | None = None
-        self.value: Value | None = None
-        self.fn_ret_val: Value | None = None
-        self.loop_should_continue: bool = False
-        self.loop_should_break: bool = False
+        self.error = None
+        self.value = None
+        self.fn_ret_val = None
+        self.loop_should_continue = False
+        self.loop_should_break = False
 
-    def register(self, res: Any) -> Value:
+    def register(self, res):
         if isinstance(res, RTResult):
             if res.should_return():
                 self.error = res.error
                 self.fn_ret_val = res.fn_ret_val
                 self.loop_should_break = res.loop_should_break
                 self.loop_should_continue = res.loop_should_continue
-            return res.value  # type: ignore
+            return res.value 
         return res
 
-    def success(self, value: Value) -> Self:
+    def success(self, value):
         self.reset()
         self.value = value
         return self
 
-    def success_return(self, value: Value) -> Self:
+    def success_return(self, value):
         self.reset()
         self.fn_ret_val = value
         return self
 
-    def success_continue(self) -> Self:
+    def success_continue(self):
         self.reset()
         self.loop_should_continue = True
         return self
 
-    def success_break(self) -> Self:
+    def success_break(self):
         self.reset()
         self.loop_should_break = True
         return self
 
-    def failure(self, error: Error):
+    def failure(self, error):
         self.reset()
         self.error = error
         return self
@@ -199,34 +198,34 @@ class RTResult:
 
 
 class Number(Value):
-    def __init__(self, value: int | float):
+    def __init__(self, value):
         self.value = value
         self.type_name = "Number"
         self.set_pos()
         self.set_context()
 
-    def added_to(self, other: Value) -> tuple[Self | None, Error | None]:
+    def added_to(self, other):
         if isinstance(other, Number):
             return Number(self.value + other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def subtracted_by(self, other: Value) -> tuple[Self | None, Error | None]:
+    def subtracted_by(self, other):
         if isinstance(other, Number):
             return Number(self.value - other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def multiplied_by(self, other: Value) -> tuple[Self | None, Error | None]:
+    def multiplied_by(self, other):
         if isinstance(other, Number):
             return Number(self.value * other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def divided_by(self, other: Value) -> tuple[Self | None, Error | None]:
+    def divided_by(self, other):
         if isinstance(other, Number):
             if other.value == 0:
                 return Number(float("inf")), None
@@ -235,7 +234,7 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def flrdiv_by(self, other: Value) -> tuple[Self | None, Error | None]:
+    def flrdiv_by(self, other):
         if isinstance(other, Number):
             if other.value == 0:
                 return Number(float("inf")), None
@@ -244,7 +243,7 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def mod_of(self, other: Value) -> tuple[Self | None, Error | None]:
+    def mod_of(self, other):
         if isinstance(other, Number):
             if other.value == 0:
                 return Number(float("inf")), None
@@ -253,48 +252,48 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def raised_to(self, other: Value) -> tuple[Self | None, Error | None]:
+    def raised_to(self, other):
         if isinstance(other, Number):
             return Number(self.value**other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_eq(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_eq(self, other):
         return Boolean(self.value == other.value).set_context(self.context), None
 
-    def comp_neq(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_neq(self, other)]:
         return Boolean(self.value != other.value).set_context(self.context), None
 
-    def comp_lt(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_lt(self, other):
         if isinstance(other, Number):
             return Boolean(self.value < other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_gt(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_gt(self, other):
         if isinstance(other, Number):
             return Boolean(self.value > other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_lte(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_lte(self, other):
         if isinstance(other, Number):
             return Boolean(self.value <= other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_gte(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_gte(self, other):
         if isinstance(other, Number):
             return Boolean(self.value >= other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_and(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_and(self, other):
         if isinstance(other, Number):
             if type(self).__name__ == "Boolean":
                 return (
@@ -306,7 +305,7 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def comp_or(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_or(self, other):
         if isinstance(other, Number):
             if type(self).__name__ == "Boolean":
                 return (
@@ -318,7 +317,7 @@ class Number(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def comp_in(self, other: Any) -> tuple[Self | None, Error | None]:
+    def comp_in(self, other):
         if isinstance(other, List):
             contains = False
             for i in other.value:
@@ -329,34 +328,34 @@ class Number(Value):
             return Boolean(contains).set_context(self.context), None
         return None, self.illegal_operation(other)
 
-    def unary_not(self) -> tuple[Self | None, Error | None]:
+    def unary_not(self):
         return Boolean(not self.value).set_context(self.context), None
 
-    def copy(self) -> Self:
+    def copy(self):
         copy = Number(self.value)
         copy.set_pos(self.start_pos, self.end_pos)
         copy.set_context(self.context)
         return copy
 
-    def is_true(self) -> bool:
+    def is_true(self):
         return self.value != 0
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"{self.value}"
 
 
 class Boolean(Number):
-    def __init__(self, value: bool):
+    def __init__(self, value):
         Number.__init__(self, int(value))
         self.type_name = "Boolean"
 
-    def copy(self) -> Self:
+    def copy(self):
         copy = Boolean(bool(self.value))
         copy.set_pos(self.start_pos, self.end_pos)
         copy.set_context(self.context)
         return copy
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "true" if self.value else "false"
 
 
@@ -365,35 +364,35 @@ class Nil(Number):
         Number.__init__(self, 0)
         self.type_name = "Nil"
 
-    def copy(self) -> Self:
+    def copy(self):
         copy = Nil()
         copy.set_pos(self.start_pos, self.end_pos)
         copy.set_context(self.context)
         return copy
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "nil"
 
 
 class String(Value):
-    def __init__(self, value: str):
+    def __init__(self, value):
         super().__init__()
         self.type_name = "String"
         self.value = value
 
-    def added_to(self, other: Self) -> tuple[Self | None, Error | None]:
+    def added_to(self, other):
         return (
             String(self.value + f"{other.get_value()}").set_context(self.context),
             None,
         )
 
-    def multiplied_by(self, other: Number) -> tuple[Self | None, Error | None]:
+    def multiplied_by(self, other):
         if isinstance(other, Number):
             return String(self.value * int(other.value)).set_context(self.context), None
         else:
             return None, Value.illegal_operation(self, other)
 
-    def indexed_at(self, other: Number) -> tuple[Self | None, Error | None]:
+    def indexed_at(self, other):
         if isinstance(other, Number):
             if not (other.value < len(self.value) and other.value >= 0):
                 return None, IndexOutOfBoundsError(
@@ -406,51 +405,51 @@ class String(Value):
         else:
             return None, Value.illegal_operation(self, other)
 
-    def comp_eq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_eq(self, other):
         return Boolean(self.value == other.value).set_context(self.context), None
 
-    def comp_neq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_neq(self, other):
         return Boolean(self.value != other.value).set_context(self.context), None
 
-    def comp_lt(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_lt(self, other):
         if isinstance(other, String):
             return Boolean(self.value < other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_gt(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_gt(self, other) :
         if isinstance(other, String):
             return Boolean(self.value > other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_lte(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_lte(self, other) :
         if isinstance(other, String):
             return Boolean(self.value <= other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_gte(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_gte(self, other):
         if isinstance(other, String):
             return Boolean(self.value >= other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_and(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_and(self, other) :
         return String(other.value).set_context(self.context), None
 
-    def comp_or(self, other: Self) -> tuple[Self | None, Error | None]:
+    def comp_or(self, other):
         return String(self.value).set_context(self.context), None
 
-    def comp_in(self, other: Any) -> tuple[Boolean | None, Error | None]:
+    def comp_in(self, other):
         if isinstance(other, List):
             contains = False
             for i in other.value:
-                if self.value == i.value:  # type: ignore
+                if self.value == i.value:
                     contains = True
                     break
 
@@ -463,20 +462,20 @@ class String(Value):
     def is_true(self):
         return len(self.value) > 0
 
-    def copy(self) -> Self:
+    def copy(self):
         copy = String(self.value)
         copy.set_context(self.context)
         copy.set_pos(self.start_pos, self.end_pos)
         return copy
 
-    def __repr__(self, inc_quotes: bool = True) -> str:
+    def __repr__(self, inc_quotes= True):
         return f'"{self.value}"' if inc_quotes else f"{self.value}"
 
 
 class List(Value):
-    def __init__(self, elements: list[Value]) -> None:
+    def __init__(self, elements):
         self.type_name = "List"
-        self.value: list[Value] = elements
+        self.value = elements
         super().__init__()
 
     def copy(self):
@@ -486,21 +485,21 @@ class List(Value):
             .set_context(self.context)
         )
 
-    def is_true(self) -> bool | Error:
+    def is_true(self):
         return len(self.value) > 0
 
-    def indexed_at(self, other: Number) -> tuple[Any | None, Error | None]:
+    def indexed_at(self, other):
         if isinstance(other, Number):
             if not (other.value < len(self.value) and other.value >= 0):
                 return None, IndexOutOfBoundsError(
                     f"Expected index within range 0 to {len(self.value) - 1}, instead got {other.value}",
-                    other.start_pos,  # type: ignore
-                    other.end_pos,  # type: ignore
+                    other.start_pos, 
+                    other.end_pos, 
                     self.context,
                 )
 
             return (
-                self.value[int(other.value)].set_context(  # type:ignore
+                self.value[int(other.value)].set_context(
                     self.context
                 ),
                 None,
@@ -509,13 +508,13 @@ class List(Value):
         else:
             return None, Value.illegal_operation(self, other)
 
-    def comp_eq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_eq(self, other):
         return Boolean(self.value == other.value).set_context(self.context), None
 
-    def comp_neq(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_neq(self, other):
         return Boolean(self.value != other.value).set_context(self.context), None
 
-    def comp_in(self, other: Self) -> tuple[Boolean | None, Error | None]:
+    def comp_in(self, other):
         return Boolean(self.value in other.value).set_context(self.context), None
 
 
@@ -581,13 +580,13 @@ class Function(BaseFunction):
         self.args = args
         self.should_auto_return = should_auto_return
 
-    def copy(self) -> Self:
+    def copy(self):
         copy = Function(self.name, self.body, self.args, self.should_auto_return)
         copy.set_context(self.context)
         copy.set_pos(self.start_pos, self.end_pos)
         return copy
 
-    def execute(self, args) -> RTResult:
+    def execute(self, args):
         res = RTResult()
         new_context = self.generate_new_context()
         res.register(self.check_and_populate_args(self.args, args, new_context))
@@ -776,26 +775,26 @@ def generate_hint(ctx, var_name):
 
 class Interpreter:
     @staticmethod
-    def visit(node: Node, context: Context) -> RTResult:
+    def visit(node, context) :
         method_name = f"visit_{type(node).__name__}"
         return getattr(Interpreter, method_name, Interpreter.no_visit_method)(
             node, context
         )
 
     @staticmethod
-    def no_visit_method(node: Node, context: Context):
+    def no_visit_method(node, context):
         raise Exception(f"No visit_{type(node).__name__} method defined!")
 
     @staticmethod
-    def visit_NumberNode(node: NumberNode, context: Context) -> RTResult:
+    def visit_NumberNode(node, context):
         return RTResult().success(Number(node.tok.value).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
 
     @staticmethod
-    def visit_StringNode(node: StringNode, context: Context) -> RTResult:
+    def visit_StringNode(node, context):
         return RTResult().success(String(node.tok.value).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
 
     @staticmethod
-    def visit_ListNode(node: ListNode, context: Context) -> RTResult:
+    def visit_ListNode(node, context):
         res = RTResult()
         elements = []
 
@@ -807,19 +806,19 @@ class Interpreter:
         return RTResult().success(List(elements).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
 
     @staticmethod
-    def visit_BooleanNode(node: BooleanNode, context: Context) -> RTResult:
+    def visit_BooleanNode(node, context):
         return RTResult().success(Boolean(node.tok.value == "true").set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
 
     @staticmethod
-    def visit_NilNode(node: NilNode, context: Context) -> RTResult:
+    def visit_NilNode(node, context):
         return RTResult().success(
             Nil().set_context(context).set_pos(node.start_pos, node.end_pos)
         )
 
     @staticmethod
     def visit_BinaryOperatorNode(
-        node: BinaryOperatorNode, context: Context
-    ) -> RTResult:
+        node, context
+    ):
         res = RTResult()
 
         left: Value = res.register(Interpreter.visit(node.left_node, context))
@@ -968,7 +967,7 @@ class Interpreter:
                     handle_assign,
                 ),
             ],
-        ).eval()  # type: ignore
+        ).eval()
 
         if error:
             return res.failure(error)
@@ -976,7 +975,7 @@ class Interpreter:
         return res.success(result.set_pos(node.start_pos, node.end_pos))
 
     @staticmethod
-    def visit_UnaryOperatorNode(node: UnaryOperatorNode, context: Context) -> RTResult:
+    def visit_UnaryOperatorNode(node, context):
         res = RTResult()
         right: Value = res.register(Interpreter.visit(node.right_node, context))
         if res.should_return():
@@ -985,14 +984,14 @@ class Interpreter:
         error = None
 
         if node.op_tok.type == TT_MINUS and type(right) == Number:
-            right, error = right.multiplied_by(Number(-1))  # type: ignore
+            right, error = right.multiplied_by(Number(-1)) 
 
         elif node.op_tok.matches(TT_KWRD, "not"):
-            right, error = right.unary_not()  # type: ignore
+            right, error = right.unary_not()
 
         elif node.op_tok.type in (TT_INC, TT_DEC):
-            var_name = node.right_node.var_name.value  # type: ignore
-            value = context.symbol_table.get(var_name).get_value()  # type:ignore
+            var_name = node.right_node.var_name.value  
+            value = context.symbol_table.get(var_name).get_value()  
 
             if value == None:
                 # visit all parent symbol tables
@@ -1050,7 +1049,7 @@ class Interpreter:
         return res.success(right.set_pos(node.start_pos, node.end_pos))
 
     @staticmethod
-    def visit_FmtStringNode(node: FmtStringNode, context: Context):
+    def visit_FmtStringNode(node, context):
         res = RTResult()
         final_str = ""
 
@@ -1068,14 +1067,14 @@ class Interpreter:
         return res.success(
             String(final_str)
             .set_context(context)
-            .set_pos(val.start_pos, val.end_pos)  # type:ignore
+            .set_pos(val.start_pos, val.end_pos) 
         )
 
     @staticmethod
-    def visit_VariableAccessNode(node: VariableAccessNode, context: Context):
+    def visit_VariableAccessNode(node, context):
         res = RTResult()
         var_name = node.var_name.value
-        value = context.symbol_table.get(var_name)  # type:ignore
+        value = context.symbol_table.get(var_name) 
 
         if not value:
             # visit all parent symbol tables
@@ -1095,7 +1094,7 @@ class Interpreter:
         return res.success(value)
 
     @staticmethod
-    def visit_VariableInitNode(node: VariableInitNode, context: Context):
+    def visit_VariableInitNode(node, context):
         res = RTResult()
         var_name = node.var_name.value
 
@@ -1118,7 +1117,7 @@ class Interpreter:
         return res.success(value)
 
     @staticmethod
-    def visit_VariableAssignNode(node: VariableAssignNode, context: Context):
+    def visit_VariableAssignNode(node, context):
         res = RTResult()
         var_name = node.var_name.value
         if not context.symbol_table.get(var_name):
@@ -1154,7 +1153,7 @@ class Interpreter:
         return res.success(value)
 
     @staticmethod
-    def visit_IfNode(node: IfNode, context: Context):
+    def visit_IfNode(node, context):
         res = RTResult()
 
         for condition, expr, should_return_nil in node.cases:
@@ -1178,7 +1177,7 @@ class Interpreter:
         return res.success(Nil())
 
     @staticmethod
-    def visit_WhileNode(node: WhileNode, context: Context):
+    def visit_WhileNode(node, context):
         res = RTResult()
         elements = []
 
@@ -1220,7 +1219,7 @@ class Interpreter:
         )
 
     @staticmethod
-    def visit_FnDefNode(node: FnDefNode, context: Context):
+    def visit_FnDefNode(node, context):
         res = RTResult()
         name = node.var_name.value if node.var_name else None
         body = node.body
@@ -1241,7 +1240,7 @@ class Interpreter:
         return res.success(fn_val)
 
     @staticmethod
-    def visit_CallNode(node: CallNode, context: Context):
+    def visit_CallNode(node, context):
         res = RTResult()
         args = []
 
@@ -1270,7 +1269,7 @@ class Interpreter:
         return res.success(ret_val)
 
     @staticmethod
-    def visit_ReturnNode(node: ReturnNode, context: Context):
+    def visit_ReturnNode(node, context):
         res = RTResult()
 
         if node.to_return:
@@ -1283,9 +1282,9 @@ class Interpreter:
         return res.success_return(value)
 
     @staticmethod
-    def visit_ContinueNode(node: ContinueNode, context: Context):
+    def visit_ContinueNode(node, context):
         return RTResult().success_continue()
 
     @staticmethod
-    def visit_BreakNode(node: BreakNode, context: Context):
+    def visit_BreakNode(node, context):
         return RTResult().success_break()

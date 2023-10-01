@@ -4,7 +4,6 @@ from error import IllegalCharacter, UnterminatedString, Error
 from switch import *
 from constants import *
 from color import Colors
-from type import *
 
 
 class Lexer:
@@ -28,7 +27,7 @@ class Lexer:
 
     def case_has_assignment(self, case):
         pos = self.position.copy()
-        assign_case_lut: dict[str, TokenType] = {
+        assign_case_lut = {
             "%": TT_MOD,
             "%=": TT_MODASSIGN,
             "=": TT_ASSIGN,
@@ -51,7 +50,7 @@ class Lexer:
 
     def case_has_assignment_or_repeats(self, case: str) -> Token | None:
         pos = self.position.copy()
-        assign_repeat_case_lut: dict[str, TokenType] = {
+        assign_repeat_case_lut = {
             "+": TT_PLUS,
             "++": TT_INC,
             "+=": TT_SUMASSIGN,
@@ -85,7 +84,7 @@ class Lexer:
         num_str = ""
         is_float = case == "."
         should_return_error = False
-        error_pos: Position | None = None
+        error_pos = None
 
         while self.char and self.char in NUM_STR:
             if self.char == ".":
@@ -171,7 +170,7 @@ class Lexer:
         if case in "`":
             self.advance()
 
-        fmt_str: list[tuple[(Token | list), str]] = []
+        fmt_str = []
         segment = ""
 
         esc_char = {"n": "\n", "t": "\t", "r": "\r", "b": "\b"}
@@ -261,7 +260,7 @@ class Lexer:
         
         return Token(TT_NL, self.position)
         
-    def next(self) -> tuple[Token | None, IllegalCharacter | None]:
+    def next(self):
         switch: Switch = Switch(
             self.char,
             [
@@ -301,7 +300,7 @@ class Lexer:
 
         return (tok, None)
 
-    def tokenize(self) -> list[Token] | IllegalCharacter:
+    def tokenize(self):
         while self.char != None:
             next_token, error = self.next()
 

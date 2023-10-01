@@ -7,7 +7,7 @@ import readline  # enables arrow based text navigation
 from main import *
 
 
-def get_release_info() -> dict[str, dict[str, str]] | None:
+def get_release_info():
     try:
         with open(path.abspath("release.yaml"), "r") as stream:
             try:
@@ -18,7 +18,7 @@ def get_release_info() -> dict[str, dict[str, str]] | None:
         return print("Release info not found")
 
 
-def get_license() -> str | None:
+def get_license():
     try:
         with open(path.abspath("LICENSE"), "r") as stream:
             try:

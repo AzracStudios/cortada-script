@@ -3,48 +3,46 @@ from constants import *
 from position import Position
 from parser_nodes import *
 from error import *
-from typing_extensions import Self, Any
-
 
 class ParseResult:
     def __init__(self):
-        self.error: Error | None = None
-        self.error_cache: Error | None = None
-        self.node: Node | None = None
+        self.error = None
+        self.error_cache = None
+        self.node = None
         self.advance_count = 0
         self.to_reverse_count = 0
         self.last_registered_advance_count = 0
 
-    def register_advance(self) -> None:
+    def register_advance(self):
         self.advance_count += 1
 
-    def register(self, res: Self) -> Node:
+    def register(self, res):
         self.last_registered_advance_count = res.advance_count
         self.advance_count += res.advance_count
         if res.error:
             self.error = res.error
-        return res.node  # type: ignore
+        return res.node
 
-    def try_register(self, res: Self):
+    def try_register(self, res):
         if res.error:
             self.to_reverse_count = res.advance_count
             self.error_cache = res.error
             return None
         return self.register(res)
 
-    def success(self, node: Node) -> Self:
+    def success(self, node):
         self.node = node
         return self
 
-    def failure(self, error: Error):
+    def failure(self, error):
         if not self.error or self.advance_count == 0:
             self.error = error
         return self
 
 
 class Parser:
-    def __init__(self, tokens: list[Token]):
-        self.tokens: list[Token] = tokens
+    def __init__(self, tokens):
+        self.tokens = tokens
         self.tok_idx = -1
         self.advance()
 
@@ -63,7 +61,7 @@ class Parser:
             self.cur_tok = self.tokens[self.tok_idx]
 
     def parse(self):
-        res: ParseResult = self.statements()
+        res = self.statements()
 
         if not res.error and self.cur_tok.type != TT_EOF:
             return res.failure(
@@ -75,7 +73,7 @@ class Parser:
             )
         return res
 
-    def statements(self) -> ParseResult:
+    def statements(self):
         res = ParseResult()
         statements = []
         start_pos = self.cur_tok.start_pos.copy()
@@ -329,7 +327,7 @@ class Parser:
             res.register_advance()
             self.advance()
 
-            arg_nodes: list[Node] = []
+            arg_nodes = []
 
             if self.cur_tok.type == TT_RPAREN:
                 res.register_advance()
@@ -511,10 +509,10 @@ class Parser:
     def fmt_string_expr(self):
         res = ParseResult()
         tok = self.cur_tok
-        parsed_nodes: list[Node] = []
+        parsed_nodes = []
 
         if self.cur_tok.type == TT_FMT_STRING:
-            for node_to_parse in self.cur_tok.value:  # type:ignore
+            for node_to_parse in self.cur_tok.value:
                 if node_to_parse[1] == "string":
                     parsed_nodes.append(StringNode(node_to_parse[0]))
                 elif node_to_parse[1] == "expr":
@@ -541,9 +539,9 @@ class Parser:
                 )
             )
 
-    def if_or_elif_expr(self, kwrd: str):
+    def if_or_elif_expr(self, kwrd):
         res = ParseResult()
-        cases: list[tuple[Node, Node, bool]] = []
+        cases = []
         else_case = None
 
         if not self.cur_tok.matches(TT_KWRD, kwrd):
@@ -746,8 +744,8 @@ class Parser:
         res.register_advance()
         self.advance()
 
-        var_name: Token | None = None
-        arg_names: list[Token] = []
+        var_name = None
+        arg_names = []
 
         if self.cur_tok.type == TT_IDENT:
             var_name = self.cur_tok
@@ -857,7 +855,7 @@ class Parser:
 
     def bin_op(self, func, ops, right_func=None):
         res = ParseResult()
-        left: Node = res.register(func())
+        left = res.register(func())
         if res.error:
             return res
 

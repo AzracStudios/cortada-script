@@ -22,7 +22,8 @@ global_symbol_table.set("to_bool", BuiltinFunction.to_bool)
 
 global_symbol_table.set("type", BuiltinFunction.type)
 
-def run(src: str, debug: bool = False, file_name: str = "<stdin>") -> tuple[Value | None, Error | None]:
+
+def run(src, debug=False, file_name="<stdin>"):
     # ENABLE ANSI SUPPORT ON WINDOWS
     if platform.system() == "Windows":
         os.system("color")
@@ -30,8 +31,8 @@ def run(src: str, debug: bool = False, file_name: str = "<stdin>") -> tuple[Valu
     if src.strip() == "":
         return None, None
     lexer = Lexer(file_name, src)
-    toks: list[Token] | Error = lexer.tokenize()
-    
+    toks = lexer.tokenize()
+
     if isinstance(toks, Error):
         return None, toks
 
@@ -46,7 +47,7 @@ def run(src: str, debug: bool = False, file_name: str = "<stdin>") -> tuple[Valu
         res = parser.parse()
         if res.error or not res.node:
             return None, res.error
-        
+
         if debug:
             print("## ABSTRACT SYNTAX TREE ##")
             print(f"{res.node}\n")
@@ -57,7 +58,5 @@ def run(src: str, debug: bool = False, file_name: str = "<stdin>") -> tuple[Valu
 
         if debug:
             print("## RESULT ##")
-            
+
         return res.value, res.error
-
-

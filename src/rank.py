@@ -8,7 +8,7 @@
 # it is only ran when there is a refernce error, it is fine
 
 
-def sort(arr: list[dict[str, int]]):
+def sort(arr):
     if len(arr) > 1:
         mid = len(arr) // 2
         L = arr[:mid]
@@ -40,12 +40,12 @@ def sort(arr: list[dict[str, int]]):
     return arr
 
 
-def rank(list_of_words: list[str], main_word: str, len_thresh: float):
-    ranked_words: list[dict[str, str | int]] = []
+def rank(list_of_words, main_word, len_threshold):
+    ranked_words = []
 
     for word in list_of_words:
         word_score = 0
-        if len(word) <= len_thresh * len(main_word):
+        if len(word) <= len_threshold * len(main_word):
             for i, letter in enumerate(word):
                 if i < len(main_word):
                     if letter == main_word[i]:
