@@ -5,7 +5,8 @@ from constants import *
 from error import *
 from rank import rank
 from position import *
-from typing import Self
+from typing_extensions import Self
+import os
 
 
 class Context:
@@ -26,9 +27,9 @@ class SymbolTable:
         self.symbols = {}
         self.parent = parent
 
-    def get(self, name):
+    def get(self, name, propogate=True):
         val = self.symbols.get(name, None)
-        if not val and self.parent:
+        if val == None and self.parent and propogate:
             return self.parent.get(name)
         return val
 
@@ -759,7 +760,7 @@ def generate_hint(ctx, var_name):
     best_match = rank(list_of_vars, str(var_name), 3.14159)
     if len(best_match) > 0:
         best_match = best_match[0]
-        if int(best_match["score"]) / len(str(var_name)) >= 0.3:
+        if int(best_match["score"]) / len(str(var_name)) >= 0.8:
             hint = str(best_match["word"])
 
     if hint:
@@ -789,6 +790,18 @@ class Interpreter:
         return RTResult().success(String(node.tok.value).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
 
     @staticmethod
+    def visit_ListNode(node: ListNode, context: Context) -> RTResult:
+        res = RTResult()
+        elements = []
+
+        for element in node.element_nodes:
+            elements.append(res.register(Interpreter.visit(element, context)))
+            if res.should_return():
+                return res
+
+        return RTResult().success(List(elements).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
+
+    @staticmethod
     def visit_BooleanNode(node: BooleanNode, context: Context) -> RTResult:
         return RTResult().success(Boolean(node.tok.value == "true").set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
 
@@ -805,40 +818,84 @@ class Interpreter:
         res = RTResult()
 
         left: Value = res.register(Interpreter.visit(node.left_node, context))
-        if res.error:
+        if res.should_return():
             return res
         right: Value = res.register(Interpreter.visit(node.right_node, context))
-        if res.error:
+        if res.should_return():
             return res
 
         def handle_assign(case):
             if isinstance(node.left_node, VariableAccessNode):
                 var_name = node.left_node.var_name.value
-                value = context.symbol_table.get(var_name).get_value()  # type:ignore
-
-                if not value:
-                    return res.failure(
-                        ReferenceError(
-                            f"{var_name} is not defined",
-                            node.start_pos,
-                            node.end_pos,
-                            context,
-                            generate_hint(context, var_name),
-                        )
+                val_node = context.symbol_table.get(var_name)  # type:ignore
+                value = val_node.get_value()
+                if value == None:
+                    return (
+                        None,
+                        res.failure(
+                            ReferenceError(
+                                f"{var_name} is not defined",
+                                node.start_pos,
+                                node.end_pos,
+                                context,
+                                generate_hint(context, var_name),
+                            )
+                        ).error,
                     )
 
-                expr = res.register(Interpreter.visit(node.right_node, context))
-                if res.error:
-                    return res
+                expr_node = res.register(Interpreter.visit(node.right_node, context))
+                if res.should_return():
+                    return None, res.error
 
-                expr = expr.get_value()
+                expr = expr_node.get_value()
 
-                if type(value) == str and type(expr) == str:
+                def set_val(ident, val, ctx: Context):
+                    val_in_current_ctx = ctx.symbol_table.get(ident, False)
+
+                    if val_in_current_ctx == None and ctx.parent:
+                        val_in_parent_ctx = ctx.parent.symbol_table.get(ident)
+
+                        if not val_in_parent_ctx:
+                            if ctx.parent.parent:
+                                set_val(ident, val, ctx.parent.parent)
+
+                        else:
+                            ctx.parent.symbol_table.set(ident, val)
+                    else:
+                        ctx.symbol_table.set(ident, val)
+
+                if type(value) == str:
                     if node.op_tok.type == TT_SUMASSIGN:
-                        value += expr
+                        if type(expr_node) == String:
+                            value += expr_node.__repr__(inc_quotes=False)
+                        else:
+                            value += str(expr)
 
-                    context.symbol_table.set(var_name, String(value))  # type: ignore
-                    return String(value), None  # type: ignore
+                    set_val(
+                        var_name,
+                        String(value)
+                        .set_context(context)
+                        .set_pos(val_node.start_pos, val_node.end_pos),
+                        context,
+                    )
+                    return String(value).set_context(val_node.context).set_pos(val_node.start_pos, val_node.end_pos), None  # type: ignore
+
+                elif type(value) == list:
+                    if node.op_tok.type == TT_SUMASSIGN:
+                        value.append(expr)
+                    set_val(
+                        var_name,
+                        List(value)
+                        .set_context(context)
+                        .set_pos(val_node.start_pos, val_node.end_pos),
+                        context,
+                    )
+                    return (
+                        List(value)
+                        .set_context(val_node.context)
+                        .set_pos(val_node.start_pos, val_node.end_pos),
+                        None,
+                    )
 
                 else:
                     value = Switch(
@@ -852,8 +909,15 @@ class Interpreter:
                         ],
                     ).eval()
 
-                context.symbol_table.set(var_name, Number(value))  # type: ignore
-                return Number(value), None  # type: ignore
+                # context.symbol_table.set(var_name, Number(value))  # type: ignore
+                set_val(
+                    var_name,
+                    Number(value)  # type: ignore
+                    .set_context(context)
+                    .set_pos(val_node.start_pos, val_node.end_pos),
+                    context,
+                )
+                return Number(value).set_context(context).set_pos(val_node.start_pos, val_node.end_pos), None  # type: ignore
 
         result, error = Switch(
             node.op_tok.type,
@@ -862,7 +926,10 @@ class Interpreter:
                 ReturnableCase(TT_MINUS, left.subtracted_by(right)),
                 ReturnableCase(TT_MUL, left.multiplied_by(right)),
                 ReturnableCase(TT_DIV, left.divided_by(right)),
+                ReturnableCase(TT_FLRDIV, left.flrdiv_by(right)),
+                ReturnableCase(TT_MOD, left.mod_of(right)),
                 ReturnableCase(TT_POW, left.raised_to(right)),
+                ReturnableCase(TT_AT, left.indexed_at(right)),
                 ReturnableCase(TT_EQL, left.comp_eq(right)),
                 ReturnableCase(TT_NEQL, left.comp_neq(right)),
                 ReturnableCase(TT_LT, left.comp_lt(right)),
@@ -871,12 +938,17 @@ class Interpreter:
                 ReturnableCase(TT_GTE, left.comp_gte(right)),
                 AuxiliaryCase(
                     ((TT_KWRD, "and"),),
-                    left.comp_and(right),
+                    lambda: left.comp_and(right),
                     (node.op_tok.type, node.op_tok.value),
                 ),
                 AuxiliaryCase(
                     ((TT_KWRD, "or"),),
-                    left.comp_or(right),
+                    lambda: left.comp_or(right),
+                    (node.op_tok.type, node.op_tok.value),
+                ),
+                AuxiliaryCase(
+                    ((TT_KWRD, "in"),),
+                    lambda: left.comp_in(right),
                     (node.op_tok.type, node.op_tok.value),
                 ),
                 ExecutableCase(
@@ -902,7 +974,7 @@ class Interpreter:
     def visit_UnaryOperatorNode(node: UnaryOperatorNode, context: Context) -> RTResult:
         res = RTResult()
         right: Value = res.register(Interpreter.visit(node.right_node, context))
-        if res.error:
+        if res.should_return():
             return res
 
         error = None
@@ -927,7 +999,9 @@ class Interpreter:
                     list_of_vars.extend(ctx.symbol_table.symbols.keys())
                     ctx = ctx.parent
 
-                best_match = rank(list_of_vars, str(var_name), 3.14159)
+                best_match = rank(
+                    list_of_vars, str(var_name), 3.141592653589793238462643
+                )
                 if len(best_match) > 0:
                     best_match = best_match[0]
                     if int(best_match["score"]) / len(str(var_name)) >= 0.3:
@@ -947,7 +1021,23 @@ class Interpreter:
                 )
 
             right = Number(value + (1 if node.op_tok.type == TT_INC else -1))
-            context.symbol_table.set(var_name, right)
+
+            def set_val(ident, val, ctx: Context):
+                val_in_current_ctx = ctx.symbol_table.get(ident, False)
+
+                if val_in_current_ctx == None and ctx.parent:
+                    val_in_parent_ctx = ctx.parent.symbol_table.get(ident)
+
+                    if not val_in_parent_ctx:
+                        if ctx.parent.parent:
+                            set_val(ident, val, ctx.parent.parent)
+
+                    else:
+                        ctx.parent.symbol_table.set(ident, val)
+                else:
+                    ctx.symbol_table.set(ident, val)
+
+            set_val(var_name, right, context)
 
         if error:
             return res.failure(error)
@@ -961,16 +1051,20 @@ class Interpreter:
 
         for n in node.nodes:
             val = res.register(Interpreter.visit(n, context))
-            if res.error:
+            if res.should_return():
                 return res
 
             final_str += (
                 val.__repr__(inc_quotes=False)
                 if isinstance(val, String)
-                else val.__repr__()
+                else val.get_value()[0].__repr__()
             )
 
-        return res.success(String(final_str))
+        return res.success(
+            String(final_str)
+            .set_context(context)
+            .set_pos(val.start_pos, val.end_pos)  # type:ignore
+        )
 
     @staticmethod
     def visit_VariableAccessNode(node: VariableAccessNode, context: Context):
@@ -992,14 +1086,15 @@ class Interpreter:
                 )
             )
 
-        value = value.copy().set_pos(node.start_pos, node.end_pos)
+        value = value.copy().set_pos(node.start_pos, node.end_pos).set_context(context)
         return res.success(value)
 
     @staticmethod
     def visit_VariableInitNode(node: VariableInitNode, context: Context):
         res = RTResult()
         var_name = node.var_name.value
-        if context.symbol_table.get(var_name):
+
+        if context.symbol_table.get(var_name, False):
             return res.failure(
                 ReferenceError(
                     f"{var_name} was already declared",
@@ -1010,7 +1105,7 @@ class Interpreter:
             )
 
         value = res.register(Interpreter.visit(node.value, context))
-        if res.error:
+        if res.should_return():
             return res
 
         context.symbol_table.set(var_name, value)
@@ -1032,70 +1127,105 @@ class Interpreter:
             )
 
         value = res.register(Interpreter.visit(node.value, context))
-        if res.error:
+        if res.should_return():
             return res
 
-        context.symbol_table.set(var_name, value)
+        def set_val(ident, val, ctx: Context):
+            val_in_current_ctx = ctx.symbol_table.get(ident, False)
 
+            if val_in_current_ctx == None and ctx.parent:
+                val_in_parent_ctx = ctx.parent.symbol_table.get(ident)
+
+                if not val_in_parent_ctx:
+                    if ctx.parent.parent:
+                        set_val(ident, val, ctx.parent.parent)
+
+                else:
+                    ctx.parent.symbol_table.set(ident, val)
+            else:
+                ctx.symbol_table.set(ident, val)
+
+        set_val(var_name, value, context)
         return res.success(value)
 
     @staticmethod
     def visit_IfNode(node: IfNode, context: Context):
         res = RTResult()
 
-        for condition, expr in node.cases:
+        for condition, expr, should_return_nil in node.cases:
             condition_value = res.register(Interpreter.visit(condition, context))
-            if res.error:
+            if res.should_return():
                 return res
 
             if condition_value.is_true():
                 expr_value = res.register(Interpreter.visit(expr, context))
-                if res.error:
+                if res.should_return():
                     return res
-                return res.success(expr_value)
+                return res.success(Nil() if should_return_nil else expr_value)
 
         if node.else_case:
-            else_value = res.register(Interpreter.visit(node.else_case, context))
-            if res.error:
+            expr, should_return_nil = node.else_case
+            else_value = res.register(Interpreter.visit(expr, context))
+            if res.should_return():
                 return res
             return res.success(else_value)
 
-        return res.success(
-            Nil()
-            .set_context(context)
-            .set_pos(node.start_pos, node.start_pos.copy().advance().advance())
-        )
+        return res.success(Nil())
 
     @staticmethod
     def visit_WhileNode(node: WhileNode, context: Context):
         res = RTResult()
+        elements = []
 
         while True:
-            condition = res.register(Interpreter.visit(node.condition, context))
-            if res.error:
+            loop_context = Context(context.display_name, context, node.start_pos)
+            loop_context.symbol_table = SymbolTable(context.symbol_table)
+
+            condition = res.register(Interpreter.visit(node.condition, loop_context))
+
+            if res.should_return():
                 return res
 
             if not condition.is_true():
                 break
 
-            res.register(Interpreter.visit(node.do, context))
-            if res.error:
+            val = res.register(Interpreter.visit(node.do, loop_context))
+
+            if (
+                res.should_return()
+                and res.loop_should_continue == False
+                and res.loop_should_break == False
+            ):
                 return res
 
-        return res
+            if res.loop_should_continue:
+                continue
+
+            if res.loop_should_break:
+                break
+
+            elements.append(val)
+
+        return res.success(
+            Nil()
+            if node.should_return_nil
+            else List(elements)
+            .set_context(context)
+            .set_pos(node.start_pos, node.end_pos)
+        )
 
     @staticmethod
     def visit_FnDefNode(node: FnDefNode, context: Context):
         res = RTResult()
-
         name = node.var_name.value if node.var_name else None
         body = node.body
+
         arg_names = (
             [arg_name.value for arg_name in node.arg_names] if node.arg_names else []
         )
 
         fn_val = (
-            Function(name, body, arg_names)
+            Function(name, body, arg_names, node.should_auto_return)
             .set_context(context)
             .set_pos(node.start_pos, node.end_pos)
         )
@@ -1111,18 +1241,46 @@ class Interpreter:
         args = []
 
         val_to_call = res.register(Interpreter.visit(node.to_call, context))
-        if res.error:
+        if res.should_return():
             return res
-        val_to_call = val_to_call.copy().set_pos(node.start_pos, node.end_pos)
+        val_to_call = (
+            val_to_call.copy()
+            .set_pos(node.start_pos, node.end_pos)
+            .set_context(context)
+        )
 
         if node.args:
             for arg_node in node.args:
                 args.append(res.register(Interpreter.visit(arg_node, context)))
-                if res.error:
+                if res.should_return():
                     return res
 
         ret_val = res.register(val_to_call.execute(args))
-        if res.error:
-            return res
 
+        if res.should_return():
+            return res
+        ret_val = (
+            ret_val.copy().set_pos(node.start_pos, node.end_pos).set_context(context)
+        )
         return res.success(ret_val)
+
+    @staticmethod
+    def visit_ReturnNode(node: ReturnNode, context: Context):
+        res = RTResult()
+
+        if node.to_return:
+            value = res.register(Interpreter.visit(node.to_return, context))
+            if res.should_return():
+                return res
+        else:
+            value = Nil()
+
+        return res.success_return(value)
+
+    @staticmethod
+    def visit_ContinueNode(node: ContinueNode, context: Context):
+        return RTResult().success_continue()
+
+    @staticmethod
+    def visit_BreakNode(node: BreakNode, context: Context):
+        return RTResult().success_break()
