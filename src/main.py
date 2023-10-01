@@ -9,13 +9,27 @@ import platform
 
 global_symbol_table = SymbolTable()
 
+global_symbol_table.set("print", BuiltinFunction.print)
+global_symbol_table.set("print_eol", BuiltinFunction.print_eol)
+global_symbol_table.set("hello_world", BuiltinFunction.hello_world)
+global_symbol_table.set("input", BuiltinFunction.input)
+global_symbol_table.set("clear", BuiltinFunction.clear)
 
-def run(src: str, debug: bool = False) -> tuple[Value | None, Error | None]:
+global_symbol_table.set("to_int", BuiltinFunction.to_int)
+global_symbol_table.set("to_float", BuiltinFunction.to_float)
+global_symbol_table.set("to_string", BuiltinFunction.to_string)
+global_symbol_table.set("to_bool", BuiltinFunction.to_bool)
+
+global_symbol_table.set("type", BuiltinFunction.type)
+
+def run(src: str, debug: bool = False, file_name: str = "<stdin>") -> tuple[Value | None, Error | None]:
     # ENABLE ANSI SUPPORT ON WINDOWS
     if platform.system() == "Windows":
         os.system("color")
 
-    lexer = Lexer("<stdin>", src)
+    if src.strip() == "":
+        return None, None
+    lexer = Lexer(file_name, src)
     toks: list[Token] | Error = lexer.tokenize()
     
     if isinstance(toks, Error):
@@ -37,9 +51,13 @@ def run(src: str, debug: bool = False) -> tuple[Value | None, Error | None]:
             print("## ABSTRACT SYNTAX TREE ##")
             print(f"{res.node}\n")
 
-        context = Context("<shell>")
+        context = Context("<global>")
         context.symbol_table = global_symbol_table
         res = Interpreter.visit(res.node, context)
+
         if debug:
             print("## RESULT ##")
+            
         return res.value, res.error
+
+

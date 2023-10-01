@@ -91,7 +91,12 @@ quit         quit shell"""
             continue
         
         if val != None:
-            print(val)
+            if isinstance(val, List):
+                if len(val.value) == 1:
+                    if val.value[0] != None:
+                        print(repr(val.value[0]))
+                else:
+                    print(val)
 
 
 if __name__ == "__main__":
