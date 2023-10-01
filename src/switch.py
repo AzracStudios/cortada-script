@@ -20,9 +20,9 @@ class AuxiliaryCase:
 
 
 class ExecutableCase:
-    def __init__(self, case, do: Callable):
+    def __init__(self, case, do):
         self.case = case
-        self.do: Callable = do
+        self.do = do
 
     def eval(self, variable):
         if variable in self.case:

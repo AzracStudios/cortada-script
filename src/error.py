@@ -10,7 +10,7 @@ class Error:
         start_pos,
         end_pos,
         type,
-        help_text = None,
+        help_text=None,
     ):
         self.message = message
         self.src = src
@@ -25,7 +25,9 @@ class Error:
         res += self.generate_code_preview()
 
         if self.help_text:
-            res += Colors.green(f"\n\n{Colors.bright_green('Hint:')} {Colors.green(self.help_text)}")
+            res += Colors.green(
+                f"\n\n{Colors.bright_green('Hint:')} {Colors.green(self.help_text)}"
+            )
 
         return f"{res}"
 
@@ -40,7 +42,6 @@ class Error:
         line_count = self.end_pos.ln - self.start_pos.ln + 1
         if self.end_pos.ln > 1:
             line_count += 1
-            
 
         for i in range(line_count):
             sp = len(str(self.start_pos.ln + line_count))
@@ -71,7 +72,7 @@ class IllegalCharacter(Error):
         char,
         start_pos,
         end_pos,
-        help_text = None,
+        help_text=None,
     ):
         Error.__init__(
             self,
@@ -91,12 +92,12 @@ class UnterminatedString(Error):
         end_pos,
         term_char,
     ):
-        char_text = '\'"\''
+        char_text = "'\"'"
         if term_char == "'":
-            char_text = "\"'\""
+            char_text = '"\'"'
         elif term_char == "`":
             char_text = "'`'"
-        
+
         Error.__init__(
             self,
             f"Unterminated String",
@@ -104,7 +105,7 @@ class UnterminatedString(Error):
             start_pos,
             end_pos,
             "Lexer Error",
-            f'Try adding a {char_text} at the end of the line',
+            f"Try adding a {char_text} at the end of the line",
         )
 
 
@@ -114,7 +115,7 @@ class InvalidSyntax(Error):
         details,
         start_pos,
         end_pos,
-        help_text = None,
+        help_text=None,
     ):
         Error.__init__(
             self,
@@ -134,7 +135,7 @@ class RTError(Error):
         end_pos,
         details,
         context,
-        help_text = None,
+        help_text=None,
     ):
         self.context = context
         Error.__init__(
@@ -164,7 +165,7 @@ class RTError(Error):
         ctx = self.context
 
         while ctx:
-            result = f"File {Colors.bright_white(pos.file_name)}, line {pos.ln + 1}, in {Colors.bright_white(ctx.display_name)}\n{result}"  # type:ignore
+            result = f"File {Colors.bright_white(pos.file_name)}, line {pos.ln + 1}, in {Colors.bright_white(ctx.display_name)}\n{result}"
             pos = ctx.parent_entry_pos
             ctx = ctx.parent
 
@@ -179,7 +180,7 @@ class ReferenceError(RTError):
         start_pos,
         end_pos,
         context,
-        help_text = None,
+        help_text=None,
     ):
         RTError.__init__(
             self,
@@ -190,12 +191,13 @@ class ReferenceError(RTError):
             help_text,
         )
 
+
 class ValueError(RTError):
     def __init__(self, details, start_pos, end_pos, context):
         RTError.__init__(
             self,
             start_pos,
-            end_pos, 
+            end_pos,
             f"ValueError: {details}",
             context,
         )
@@ -210,6 +212,7 @@ class TypeError(RTError):
             f"TypeError: {details}",
             context,
         )
+
 
 class IndexOutOfBoundsError(RTError):
     def __init__(self, details, start_pos, end_pos, context):

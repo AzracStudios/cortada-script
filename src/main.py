@@ -22,6 +22,7 @@ global_symbol_table.set("to_bool", BuiltinFunction.to_bool)
 
 global_symbol_table.set("type", BuiltinFunction.type)
 
+global_symbol_table.set("length", BuiltinFunction.length)
 
 def run(src, debug=False, file_name="<stdin>"):
     # ENABLE ANSI SUPPORT ON WINDOWS

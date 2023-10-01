@@ -72,7 +72,7 @@ class Colors:
         return f"\u001b[34;1m{text}\u001b[0m"
 
     @staticmethod
-    def magenta(text)r:
+    def magenta(text):
         return f"\u001b[35m{text}\u001b[0m"
 
     @staticmethod

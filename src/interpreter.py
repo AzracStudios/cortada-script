@@ -12,13 +12,13 @@ class Context:
     def __init__(
         self,
         display_name,
-        parent = None,
-        parent_entry_pos = None,
-    ) -> None:
+        parent=None,
+        parent_entry_pos=None,
+    ):
         self.display_name = display_name
         self.parent = parent
         self.parent_entry_pos = parent_entry_pos
-        self.symbol_table
+        self.symbol_table = None
 
 
 class SymbolTable:
@@ -47,14 +47,12 @@ class Value:
         self.set_pos()
         self.set_context()
 
-    def set_pos(
-        self, start_pos = None, end_pos = None
-    ) -> Self:
+    def set_pos(self, start_pos=None, end_pos=None):
         self.start_pos = start_pos
         self.end_pos = end_pos
         return self
 
-    def set_context(self, context = None):
+    def set_context(self, context=None):
         self.context = context
         return self
 
@@ -123,21 +121,21 @@ class Value:
             TypeError(
                 f"Cannot call {self.type_name}",
                 self.start_pos,
-                self.end_pos,  
-                self.context,  
+                self.end_pos,
+                self.context,
             )
         )
 
     def get_value(self, context=None):
         return self.value
-    
+
     def illegal_operation(self, other=None):
         if not other:
             other = self
         return TypeError(
             f"Illegal operation for {self.__class__.__name__} and {other.__class__.__name__}",
-            self.start_pos, 
-            self.end_pos, 
+            self.start_pos,
+            self.end_pos,
             self.context,
         )
 
@@ -160,7 +158,7 @@ class RTResult:
                 self.fn_ret_val = res.fn_ret_val
                 self.loop_should_break = res.loop_should_break
                 self.loop_should_continue = res.loop_should_continue
-            return res.value 
+            return res.value
         return res
 
     def success(self, value):
@@ -262,7 +260,7 @@ class Number(Value):
     def comp_eq(self, other):
         return Boolean(self.value == other.value).set_context(self.context), None
 
-    def comp_neq(self, other)]:
+    def comp_neq(self, other):
         return Boolean(self.value != other.value).set_context(self.context), None
 
     def comp_lt(self, other):
@@ -321,7 +319,7 @@ class Number(Value):
         if isinstance(other, List):
             contains = False
             for i in other.value:
-                if self.value == i.value:  # type:ignore
+                if self.value == i.value:
                     contains = True
                     break
 
@@ -397,8 +395,8 @@ class String(Value):
             if not (other.value < len(self.value) and other.value >= 0):
                 return None, IndexOutOfBoundsError(
                     f"Expected index within range 0 to {len(self.value) - 1}, got {other.value}",
-                    other.start_pos,  # type: ignore
-                    other.end_pos,  # type: ignore
+                    other.start_pos,
+                    other.end_pos,
                     self.context,
                 )
             return String(self.value[int(other.value)]).set_context(self.context), None
@@ -418,14 +416,14 @@ class String(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def comp_gt(self, other) :
+    def comp_gt(self, other):
         if isinstance(other, String):
             return Boolean(self.value > other.value).set_context(self.context), None
 
         else:
             return None, self.illegal_operation(other)
 
-    def comp_lte(self, other) :
+    def comp_lte(self, other):
         if isinstance(other, String):
             return Boolean(self.value <= other.value).set_context(self.context), None
 
@@ -439,7 +437,7 @@ class String(Value):
         else:
             return None, self.illegal_operation(other)
 
-    def comp_and(self, other) :
+    def comp_and(self, other):
         return String(other.value).set_context(self.context), None
 
     def comp_or(self, other):
@@ -458,7 +456,6 @@ class String(Value):
             return Boolean(self.value in other.value).set_context(self.context), None
         return None, self.illegal_operation(other)
 
-
     def is_true(self):
         return len(self.value) > 0
 
@@ -468,7 +465,7 @@ class String(Value):
         copy.set_pos(self.start_pos, self.end_pos)
         return copy
 
-    def __repr__(self, inc_quotes= True):
+    def __repr__(self, inc_quotes=True):
         return f'"{self.value}"' if inc_quotes else f"{self.value}"
 
 
@@ -493,15 +490,13 @@ class List(Value):
             if not (other.value < len(self.value) and other.value >= 0):
                 return None, IndexOutOfBoundsError(
                     f"Expected index within range 0 to {len(self.value) - 1}, instead got {other.value}",
-                    other.start_pos, 
-                    other.end_pos, 
+                    other.start_pos,
+                    other.end_pos,
                     self.context,
                 )
 
             return (
-                self.value[int(other.value)].set_context(
-                    self.context
-                ),
+                self.value[int(other.value)].set_context(self.context),
                 None,
             )
 
@@ -516,7 +511,6 @@ class List(Value):
 
     def comp_in(self, other):
         return Boolean(self.value in other.value).set_context(self.context), None
-
 
     def __repr__(self):
         string = "["
@@ -536,9 +530,7 @@ class BaseFunction(Value):
 
     def generate_new_context(self):
         new_context = Context(self.name, self.context, self.start_pos)
-        new_context.symbol_table = SymbolTable(
-            new_context.parent.symbol_table  # type:ignore
-        )
+        new_context.symbol_table = SymbolTable(new_context.parent.symbol_table)
 
         return new_context
 
@@ -548,13 +540,13 @@ class BaseFunction(Value):
             return res.failure(
                 TypeError(
                     f"{self.name} takes in {len(arg_names)} args. {len(args)} {'arg was' if len(args) == 1 else 'args were'} given",
-                    self.start_pos,  # type:ignore
-                    self.end_pos,  # type:ignore
-                    self.context,  # type:ignore
+                    self.start_pos,
+                    self.end_pos,
+                    self.context,
                 )
             )
 
-        return res.success(None)  # type: ignore
+        return res.success(None)
 
     def populate_args(self, arg_names, args, context):
         for i in range(len(args)):
@@ -562,7 +554,6 @@ class BaseFunction(Value):
             arg_val = args[i]
             arg_val.set_context(context)
             context.symbol_table.set(arg_name, arg_val)
-            
 
     def check_and_populate_args(self, arg_names, args, context):
         res = RTResult()
@@ -570,7 +561,7 @@ class BaseFunction(Value):
         if res.error:
             return res
         res.register(self.populate_args(arg_names, args, context))
-        return res.success(None)  # type: ignore
+        return res.success(None)
 
 
 class Function(BaseFunction):
@@ -621,7 +612,7 @@ class BuiltinFunction(BaseFunction):
         if res.error:
             return res
 
-        return_value = res.register(method(context))  # type:ignore
+        return_value = res.register(method(context))
         if res.error:
             return res
 
@@ -713,24 +704,32 @@ class BuiltinFunction(BaseFunction):
     execute_to_float.arg_names = ["val_to_cvt"]
 
     def execute_to_string(self, context):
-        val = context.symbol_table.get('val_to_cvt').get_value()
+        val = context.symbol_table.get("val_to_cvt").get_value()
         return RTResult().success(String(str(val)))
-    
+
     execute_to_string.arg_names = ["val_to_cvt"]
 
     def execute_to_bool(self, context):
-        val = context.symbol_table.get('val_to_cvt')
+        val = context.symbol_table.get("val_to_cvt")
         return RTResult().success(Boolean(val.is_true()))
-    
+
     execute_to_bool.arg_names = ["val_to_cvt"]
 
-    def execute_type(self, context: Context):
+    def execute_type(self, context):
         val = context.symbol_table.get("val")
         return RTResult().success(String(val.type_name))
 
     execute_type.arg_names = ["val"]
 
-    def execute_clear(self, context: Context):
+    def execute_length(self, context):
+        obj = context.symbol_table.get("obj")
+        if obj.type_name not in ("List", "String"):
+            return RTResult().success(Nil())
+        return RTResult().success(Number(len(obj.get_value())))
+
+    execute_length.arg_names = ["obj"]
+
+    def execute_clear(self, context):
         os.system("cls" if os.name == "nt" else "clear")
         return RTResult().success(Nil())
 
@@ -738,17 +737,18 @@ class BuiltinFunction(BaseFunction):
 
 
 BuiltinFunction.print = BuiltinFunction("print")
-BuiltinFunction.print_eol = BuiltinFunction("print_eol")  
-BuiltinFunction.hello_world = BuiltinFunction("hello_world")  
-BuiltinFunction.input = BuiltinFunction("input")  
-BuiltinFunction.clear = BuiltinFunction("clear")  
+BuiltinFunction.print_eol = BuiltinFunction("print_eol")
+BuiltinFunction.hello_world = BuiltinFunction("hello_world")
+BuiltinFunction.input = BuiltinFunction("input")
+BuiltinFunction.clear = BuiltinFunction("clear")
 
-BuiltinFunction.to_int = BuiltinFunction("to_int") 
-BuiltinFunction.to_float = BuiltinFunction("to_float")  
-BuiltinFunction.to_string = BuiltinFunction("to_string")  
-BuiltinFunction.to_bool = BuiltinFunction("to_bool")  
+BuiltinFunction.to_int = BuiltinFunction("to_int")
+BuiltinFunction.to_float = BuiltinFunction("to_float")
+BuiltinFunction.to_string = BuiltinFunction("to_string")
+BuiltinFunction.to_bool = BuiltinFunction("to_bool")
+BuiltinFunction.type = BuiltinFunction("type")
 
-BuiltinFunction.type = BuiltinFunction("type")  
+BuiltinFunction.length = BuiltinFunction("length")
 
 #############################
 
@@ -775,7 +775,7 @@ def generate_hint(ctx, var_name):
 
 class Interpreter:
     @staticmethod
-    def visit(node, context) :
+    def visit(node, context):
         method_name = f"visit_{type(node).__name__}"
         return getattr(Interpreter, method_name, Interpreter.no_visit_method)(
             node, context
@@ -787,11 +787,19 @@ class Interpreter:
 
     @staticmethod
     def visit_NumberNode(node, context):
-        return RTResult().success(Number(node.tok.value).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
+        return RTResult().success(
+            Number(node.tok.value)
+            .set_context(context)
+            .set_pos(node.start_pos, node.end_pos)
+        )
 
     @staticmethod
     def visit_StringNode(node, context):
-        return RTResult().success(String(node.tok.value).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
+        return RTResult().success(
+            String(node.tok.value)
+            .set_context(context)
+            .set_pos(node.start_pos, node.end_pos)
+        )
 
     @staticmethod
     def visit_ListNode(node, context):
@@ -803,11 +811,17 @@ class Interpreter:
             if res.should_return():
                 return res
 
-        return RTResult().success(List(elements).set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
+        return RTResult().success(
+            List(elements).set_context(context).set_pos(node.start_pos, node.end_pos)
+        )
 
     @staticmethod
     def visit_BooleanNode(node, context):
-        return RTResult().success(Boolean(node.tok.value == "true").set_context(context).set_pos(node.start_pos, node.end_pos))  # type: ignore
+        return RTResult().success(
+            Boolean(node.tok.value == "true")
+            .set_context(context)
+            .set_pos(node.start_pos, node.end_pos)
+        )
 
     @staticmethod
     def visit_NilNode(node, context):
@@ -816,9 +830,7 @@ class Interpreter:
         )
 
     @staticmethod
-    def visit_BinaryOperatorNode(
-        node, context
-    ):
+    def visit_BinaryOperatorNode(node, context):
         res = RTResult()
 
         left: Value = res.register(Interpreter.visit(node.left_node, context))
@@ -831,7 +843,7 @@ class Interpreter:
         def handle_assign(case):
             if isinstance(node.left_node, VariableAccessNode):
                 var_name = node.left_node.var_name.value
-                val_node = context.symbol_table.get(var_name)  # type:ignore
+                val_node = context.symbol_table.get(var_name)
                 value = val_node.get_value()
                 if value == None:
                     return (
@@ -882,7 +894,12 @@ class Interpreter:
                         .set_pos(val_node.start_pos, val_node.end_pos),
                         context,
                     )
-                    return String(value).set_context(val_node.context).set_pos(val_node.start_pos, val_node.end_pos), None  # type: ignore
+                    return (
+                        String(value)
+                        .set_context(val_node.context)
+                        .set_pos(val_node.start_pos, val_node.end_pos),
+                        None,
+                    )
 
                 elif type(value) == list:
                     if node.op_tok.type == TT_SUMASSIGN:
@@ -913,15 +930,19 @@ class Interpreter:
                         ],
                     ).eval()
 
-                # context.symbol_table.set(var_name, Number(value))  # type: ignore
                 set_val(
                     var_name,
-                    Number(value)  # type: ignore
+                    Number(value)
                     .set_context(context)
                     .set_pos(val_node.start_pos, val_node.end_pos),
                     context,
                 )
-                return Number(value).set_context(context).set_pos(val_node.start_pos, val_node.end_pos), None  # type: ignore
+                return (
+                    Number(value)
+                    .set_context(context)
+                    .set_pos(val_node.start_pos, val_node.end_pos),
+                    None,
+                )
 
         result, error = Switch(
             node.op_tok.type,
@@ -984,14 +1005,14 @@ class Interpreter:
         error = None
 
         if node.op_tok.type == TT_MINUS and type(right) == Number:
-            right, error = right.multiplied_by(Number(-1)) 
+            right, error = right.multiplied_by(Number(-1))
 
         elif node.op_tok.matches(TT_KWRD, "not"):
             right, error = right.unary_not()
 
         elif node.op_tok.type in (TT_INC, TT_DEC):
-            var_name = node.right_node.var_name.value  
-            value = context.symbol_table.get(var_name).get_value()  
+            var_name = node.right_node.var_name.value
+            value = context.symbol_table.get(var_name).get_value()
 
             if value == None:
                 # visit all parent symbol tables
@@ -1065,16 +1086,14 @@ class Interpreter:
             )
 
         return res.success(
-            String(final_str)
-            .set_context(context)
-            .set_pos(val.start_pos, val.end_pos) 
+            String(final_str).set_context(context).set_pos(val.start_pos, val.end_pos)
         )
 
     @staticmethod
     def visit_VariableAccessNode(node, context):
         res = RTResult()
         var_name = node.var_name.value
-        value = context.symbol_table.get(var_name) 
+        value = context.symbol_table.get(var_name)
 
         if not value:
             # visit all parent symbol tables

@@ -524,7 +524,7 @@ class Parser:
 
                     if new_res.error:
                         return new_res
-                    parsed_nodes.append(new_res.node)  # type:ignore
+                    parsed_nodes.append(new_res.node) 
 
         res.register_advance()
         self.advance()
@@ -588,7 +588,7 @@ class Parser:
                 all_cases = res.register(self.elif_or_else_expr())
                 if res.error:
                     return res
-                new_cases, else_case = all_cases  # type:ignore
+                new_cases, else_case = all_cases  
                 cases.extend(new_cases)
 
         else:
@@ -600,17 +600,17 @@ class Parser:
             all_cases = res.register(self.elif_or_else_expr())
             if res.error:
                 return res
-            new_cases, else_case = all_cases  # type:ignore
+            new_cases, else_case = all_cases 
             cases.extend(new_cases)
 
-        return res.success((cases, else_case))  # type:ignore
+        return res.success((cases, else_case)) 
 
     def if_expr(self):
         res = ParseResult()
         all_cases = res.register(self.if_or_elif_expr("if"))
         if res.error:
             return res
-        cases, else_case = all_cases  # type:ignore
+        cases, else_case = all_cases
         return res.success(IfNode(cases, else_case))
 
     def elif_expr(self):
@@ -650,7 +650,7 @@ class Parser:
                     return res
                 else_case = (expr, False)
 
-        return res.success(else_case)  # type:ignore
+        return res.success(else_case) 
 
     def elif_or_else_expr(self):
         res = ParseResult()
@@ -660,14 +660,14 @@ class Parser:
             all_cases = res.register(self.elif_expr())
             if res.error:
                 return res
-            cases, else_case = all_cases  # type:ignore
+            cases, else_case = all_cases 
 
         else:
             else_case = res.register(self.else_expr())
             if res.error:
                 return res
 
-        return res.success((cases, else_case))  # type:ignore
+        return res.success((cases, else_case)) 
 
     def while_expr(self):
         res = ParseResult()
