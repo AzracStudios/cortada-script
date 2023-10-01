@@ -14,6 +14,7 @@ TT_LTE = "LTE"
 TT_GTE = "GTE"
 TT_EQL = "EQL"
 TT_NEQL = "NEQL"
+TT_AT = "AT"
 
 ## ASSIGN ##
 TT_ASSIGN = "ASSIGN"
@@ -40,9 +41,6 @@ TT_COMMA = "COMMA"
 TT_ARROW = "ARROW"
 TT_NL = "NL"
 TT_EOF = "EOF"
-TT_COL = "COL"
-TT_DOLLAR = "DOLLAR"
-TT_BACKTICK = "BACKTICK"
 
 ## CONSTS ##
 NUM_STR = ".0123456789"
@@ -59,20 +57,25 @@ TT_IDENT = "IDENT"
 ## KWRD ##
 KWRDS = [
     "var",
-    "and",
-    "or",
-    "not",
-    "true",
-    "false",
+    "fn",
+    #####
     "if",
     "elif",
     "else",
     "then",
-    "nil",
     "while",
-    "stop",
-    "return",
-    "fn",
     "do",
+    #####
+    "and",
+    "or",
+    "in",
+    "not",
+    "true",
+    "false",
+    "nil",
+    #####
+    "return",
+    "continue",
+    "break",
     "end",
 ]
