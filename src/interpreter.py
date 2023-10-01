@@ -59,9 +59,6 @@ class Value:
         self.context = context
         return self
 
-    def get_value(self, context: Context | None = None):
-        raise Exception("Method not implemented")
-
     def added_to(self, other: Self) -> tuple[Self | None, Error | None]:
         return (None, self.illegal_operation())
 
@@ -132,6 +129,9 @@ class Value:
             )
         )
 
+    def get_value(self, context: Context | None = None):
+        return self.value
+    
     def illegal_operation(self, other=None):
         if not other:
             other = self
@@ -204,9 +204,6 @@ class Number(Value):
         self.type_name = "Number"
         self.set_pos()
         self.set_context()
-
-    def get_value(self, context: Context | None = None):
-        return self.value
 
     def added_to(self, other: Value) -> tuple[Self | None, Error | None]:
         if isinstance(other, Number):
@@ -350,8 +347,8 @@ class Number(Value):
 
 class Boolean(Number):
     def __init__(self, value: bool):
-        self.type_name = "Boolean"
         Number.__init__(self, int(value))
+        self.type_name = "Boolean"
 
     def copy(self) -> Self:
         copy = Boolean(bool(self.value))
@@ -365,8 +362,8 @@ class Boolean(Number):
 
 class Nil(Number):
     def __init__(self):
-        self.type_name = "Nil"
         Number.__init__(self, 0)
+        self.type_name = "Nil"
 
     def copy(self) -> Self:
         copy = Nil()
@@ -380,9 +377,9 @@ class Nil(Number):
 
 class String(Value):
     def __init__(self, value: str):
+        super().__init__()
         self.type_name = "String"
         self.value = value
-        super().__init__()
 
     def added_to(self, other: Self) -> tuple[Self | None, Error | None]:
         return (
@@ -462,8 +459,6 @@ class String(Value):
             return Boolean(self.value in other.value).set_context(self.context), None
         return None, self.illegal_operation(other)
 
-    def get_value(self, context: Context | None = None):
-        return self.value
 
     def is_true(self):
         return len(self.value) > 0
@@ -523,8 +518,6 @@ class List(Value):
     def comp_in(self, other: Self) -> tuple[Boolean | None, Error | None]:
         return Boolean(self.value in other.value).set_context(self.context), None
 
-    def get_value(self, context: Context | None = None):
-        return self.value
 
     def __repr__(self):
         string = "["
@@ -570,6 +563,7 @@ class BaseFunction(Value):
             arg_val = args[i]
             arg_val.set_context(context)
             context.symbol_table.set(arg_name, arg_val)
+            
 
     def check_and_populate_args(self, arg_names, args, context):
         res = RTResult()
@@ -687,24 +681,18 @@ class BuiltinFunction(BaseFunction):
     execute_hello_world.arg_names = []
 
     def execute_input(self, context: Context):
-        prompt = context.symbol_table.get("prompt")
-        if type(prompt) != String:
-            prompt = String(prompt)
-
+        prompt = String(str(context.symbol_table.get("prompt").get_value()))
         text = input(prompt.__repr__(inc_quotes=False))
         return RTResult().success(String(text))
 
     execute_input.arg_names = ["prompt"]
 
     def execute_to_int(self, context: Context):
-        val_to_cvt = context.symbol_table.get("val_to_cvt")
+        val_to_cvt = context.symbol_table.get("val_to_cvt").get_value()
         cvted_val = None
 
         try:
-            if not ("." in val_to_cvt):
-                cvted_val = int(val_to_cvt)
-            else:
-                return RTResult().success(Nil())
+            cvted_val = int(val_to_cvt)
         except:
             return RTResult().success(Nil())
 
@@ -713,7 +701,7 @@ class BuiltinFunction(BaseFunction):
     execute_to_int.arg_names = ["val_to_cvt"]
 
     def execute_to_float(self, context: Context):
-        val_to_cvt = context.symbol_table.get("val_to_cvt")
+        val_to_cvt = context.symbol_table.get("val_to_cvt").get_value()
         cvted_val = None
 
         try:
@@ -723,7 +711,19 @@ class BuiltinFunction(BaseFunction):
 
         return RTResult().success(Number(cvted_val))
 
-    execute_to_int.arg_names = ["val_to_cvt"]
+    execute_to_float.arg_names = ["val_to_cvt"]
+
+    def execute_to_string(self, context):
+        val = context.symbol_table.get('val_to_cvt').get_value()
+        return RTResult().success(String(str(val)))
+    
+    execute_to_string.arg_names = ["val_to_cvt"]
+
+    def execute_to_bool(self, context):
+        val = context.symbol_table.get('val_to_cvt')
+        return RTResult().success(Boolean(val.is_true()))
+    
+    execute_to_bool.arg_names = ["val_to_cvt"]
 
     def execute_type(self, context: Context):
         val = context.symbol_table.get("val")
@@ -738,13 +738,18 @@ class BuiltinFunction(BaseFunction):
     execute_clear.arg_names = []
 
 
-BuiltinFunction.print = BuiltinFunction("print")  # type:ignore
-BuiltinFunction.print_eol = BuiltinFunction("print_eol")  # type:ignore
-BuiltinFunction.hello_world = BuiltinFunction("hello_world")  # type:ignore
-BuiltinFunction.input = BuiltinFunction("input")  # type:ignore
-BuiltinFunction.clear = BuiltinFunction("clear")  # type:ignore
-BuiltinFunction.to_num = BuiltinFunction("to_num")  # type:ignore
-BuiltinFunction.type = BuiltinFunction("type")  # type:ignore
+BuiltinFunction.print = BuiltinFunction("print")
+BuiltinFunction.print_eol = BuiltinFunction("print_eol")  
+BuiltinFunction.hello_world = BuiltinFunction("hello_world")  
+BuiltinFunction.input = BuiltinFunction("input")  
+BuiltinFunction.clear = BuiltinFunction("clear")  
+
+BuiltinFunction.to_int = BuiltinFunction("to_int") 
+BuiltinFunction.to_float = BuiltinFunction("to_float")  
+BuiltinFunction.to_string = BuiltinFunction("to_string")  
+BuiltinFunction.to_bool = BuiltinFunction("to_bool")  
+
+BuiltinFunction.type = BuiltinFunction("type")  
 
 #############################
 
