@@ -3,7 +3,7 @@ from constants import *
 from position import Position
 from parser_nodes import *
 from error import *
-from typing import Self, Any
+from typing_extensions import Self, Any
 
 
 class ParseResult:
@@ -61,8 +61,6 @@ class Parser:
     def update_cur_tok(self):
         if self.tok_idx >= 0 and self.tok_idx < len(self.tokens):
             self.cur_tok = self.tokens[self.tok_idx]
-
-        return self.cur_tok
 
     def parse(self):
         res: ParseResult = self.statements()
@@ -154,6 +152,7 @@ class Parser:
         if res.error:
             return res
         return res.success(expr)
+
     def expr(self) -> ParseResult:
         res = ParseResult()
         init = False
@@ -261,7 +260,7 @@ class Parser:
         if res.error:
             return res.failure(
                 InvalidSyntax(
-                    f"Expected int, float, identifier, 'var', '+', '-', '(', 'if', 'while' or 'fn', got {self.cur_tok.type}",
+                    f"Unexpected token of type {self.cur_tok.type}",
                     self.cur_tok.start_pos,
                     self.cur_tok.end_pos,
                 )
@@ -283,12 +282,13 @@ class Parser:
             return res.success(UnaryOperatorNode(op_tok, node))
 
         node = res.register(
-            self.bin_op(self.arith_expr, (TT_EQL, TT_LT, TT_GT, TT_LTE, TT_GTE))
+            self.bin_op(self.arith_expr, (TT_EQL, TT_LT, TT_GT, TT_LTE, TT_GTE, (TT_KWRD, "in")))
         )
+
         if res.error:
             return res.failure(
                 InvalidSyntax(
-                    f"Expected int, float, identifier, '+', '-', '(' or 'not' got {self.cur_tok.type}",
+                    f"Unexpected token of type {self.cur_tok.type}",
                     self.cur_tok.start_pos,
                     self.cur_tok.end_pos,
                 )
@@ -297,10 +297,10 @@ class Parser:
         return res.success(node)
 
     def arith_expr(self) -> ParseResult:
-        return self.bin_op(self.term, (TT_PLUS, TT_MINUS))
+        return self.bin_op(self.term, (TT_PLUS, TT_MINUS, TT_AT))
 
     def term(self) -> ParseResult:
-        return self.bin_op(self.factor, (TT_MUL, TT_DIV))
+        return self.bin_op(self.factor, (TT_MUL, TT_DIV, TT_FLRDIV, TT_MOD))
 
     def factor(self) -> ParseResult:
         res = ParseResult()
@@ -339,7 +339,7 @@ class Parser:
                 if res.error:
                     return res.failure(
                         InvalidSyntax(
-                            f"Expected ')', int, float, identifier, 'var', '+', or '-', got {self.cur_tok.type}",
+                            f"Unexpected token of type {self.cur_tok.type}",
                             self.cur_tok.start_pos,
                             self.cur_tok.end_pos,
                         )
@@ -405,12 +405,18 @@ class Parser:
             else:
                 return res.failure(
                     InvalidSyntax(
-                        "Expected ')'",
+                        f"Expected ')', got {self.cur_tok.type}",
                         self.cur_tok.start_pos,
                         self.cur_tok.end_pos,
                         "Try adding a ')' where indicated",
                     )
                 )
+
+        elif tok.type == TT_LBRACK:
+            list_expr = res.register(self.list_expr())
+            if res.error:
+                return res
+            return res.success(list_expr)
 
         elif tok.type == TT_IDENT:
             res.register_advance()
@@ -443,10 +449,63 @@ class Parser:
 
         return res.failure(
             InvalidSyntax(
-                f"Expected int, float, identifier, '+', '-', '(', 'if', 'while' or 'fn', got {tok.type}",
+                f"Unexpected token of type {self.cur_tok.type}",
                 tok.start_pos,
                 tok.end_pos,
             )
+        )
+
+    def list_expr(self):
+        res = ParseResult()
+        element_nodes = []
+        start_pos = self.cur_tok.start_pos.copy()
+        if self.cur_tok.type != TT_LBRACK:
+            return res.failure(
+                InvalidSyntax(
+                    f"Expected '[', got {self.cur_tok.type}",
+                    start_pos,
+                    self.cur_tok.end_pos.copy(),
+                )
+            )
+
+        res.register_advance()
+        self.advance()
+
+        if self.cur_tok.type == TT_RBRACK:
+            res.register_advance()
+            self.advance()
+        else:
+            element_nodes.append(res.register(self.expr()))
+            if res.error:
+                return res.failure(
+                    InvalidSyntax(
+                        f"Unexpected token of type {self.cur_tok.type}",
+                        self.cur_tok.start_pos,
+                        self.cur_tok.end_pos,
+                    )
+                )
+
+            while self.cur_tok.type == TT_COMMA:
+                res.register_advance()
+                self.advance()
+                element_nodes.append(res.register(self.expr()))
+                if res.error:
+                    return res
+
+            if self.cur_tok.type != TT_RBRACK:
+                return res.failure(
+                    InvalidSyntax(
+                        f"Expected ']', got {self.cur_tok.type}",
+                        self.cur_tok.start_pos,
+                        self.cur_tok.end_pos,
+                    )
+                )
+
+            res.register_advance()
+            self.advance()
+
+        return res.success(
+            ListNode(element_nodes, start_pos, self.cur_tok.end_pos.copy())
         )
 
     def fmt_string_expr(self):
@@ -482,15 +541,17 @@ class Parser:
                 )
             )
 
-    def if_expr(self):
+    def if_or_elif_expr(self, kwrd: str):
         res = ParseResult()
-        cases: list[tuple[Node, Node]] = []
+        cases: list[tuple[Node, Node, bool]] = []
         else_case = None
 
-        if not self.cur_tok.matches(TT_KWRD, "if"):
+        if not self.cur_tok.matches(TT_KWRD, kwrd):
             return res.failure(
                 InvalidSyntax(
-                    "Expected 'if'", self.cur_tok.start_pos, self.cur_tok.end_pos
+                    f"Expected '{kwrd}', got {self.cur_tok.type}",
+                    self.cur_tok.start_pos,
+                    self.cur_tok.end_pos,
                 )
             )
 
@@ -504,50 +565,111 @@ class Parser:
         if not self.cur_tok.matches(TT_KWRD, "then"):
             return res.failure(
                 InvalidSyntax(
-                    "Expected 'then'", self.cur_tok.start_pos, self.cur_tok.end_pos
+                    "Expected 'then', got {self.cur_tok.type}",
+                    self.cur_tok.start_pos,
+                    self.cur_tok.end_pos,
                 )
             )
 
         res.register_advance()
         self.advance()
 
-        expr = res.register(self.expr())
+        if self.cur_tok.type == TT_NL:
+            res.register_advance()
+            self.advance()
+
+            statements = res.register(self.statements())
+            if res.error:
+                return res
+            cases.append((condition, statements, True))
+
+            if self.cur_tok.matches(TT_KWRD, "end"):
+                res.register_advance()
+                self.advance()
+            else:
+                all_cases = res.register(self.elif_or_else_expr())
+                if res.error:
+                    return res
+                new_cases, else_case = all_cases  # type:ignore
+                cases.extend(new_cases)
+
+        else:
+            expr = res.register(self.statement())
+            if res.error:
+                return res
+            cases.append((condition, expr, False))
+
+            all_cases = res.register(self.elif_or_else_expr())
+            if res.error:
+                return res
+            new_cases, else_case = all_cases  # type:ignore
+            cases.extend(new_cases)
+
+        return res.success((cases, else_case))  # type:ignore
+
+    def if_expr(self):
+        res = ParseResult()
+        all_cases = res.register(self.if_or_elif_expr("if"))
         if res.error:
             return res
-        cases.append((condition, expr))
+        cases, else_case = all_cases  # type:ignore
+        return res.success(IfNode(cases, else_case))
 
-        while self.cur_tok.matches(TT_KWRD, "elif"):
-            res.register_advance()
-            self.advance()
+    def elif_expr(self):
+        return self.if_or_elif_expr("elif")
 
-            condition = res.register(self.expr())
-            if res.error:
-                return res
-
-            if not self.cur_tok.matches(TT_KWRD, "then"):
-                return res.failure(
-                    InvalidSyntax(
-                        "Expected 'then'", self.cur_tok.start_pos, self.cur_tok.end_pos
-                    )
-                )
-
-            res.register_advance()
-            self.advance()
-
-            expr = res.register(self.expr())
-            if res.error:
-                return res
-            cases.append((condition, expr))
+    def else_expr(self):
+        res = ParseResult()
+        else_case = None
 
         if self.cur_tok.matches(TT_KWRD, "else"):
             res.register_advance()
             self.advance()
 
-            else_case = res.register(self.expr())
+            if self.cur_tok.type == TT_NL:
+                res.register_advance()
+                self.advance()
+
+                statements = res.register(self.statements())
+                if res.error:
+                    return res
+                else_case = (statements, True)
+
+                if self.cur_tok.matches(TT_KWRD, "end"):
+                    res.register_advance()
+                    self.advance()
+                else:
+                    return res.failure(
+                        InvalidSyntax(
+                            f"Expected 'end', got {self.cur_tok.type}",
+                            self.cur_tok.start_pos,
+                            self.cur_tok.end_pos,
+                        )
+                    )
+            else:
+                expr = res.register(self.statement())
+                if res.error:
+                    return res
+                else_case = (expr, False)
+
+        return res.success(else_case)  # type:ignore
+
+    def elif_or_else_expr(self):
+        res = ParseResult()
+        cases, else_case = [], None
+
+        if self.cur_tok.matches(TT_KWRD, "elif"):
+            all_cases = res.register(self.elif_expr())
+            if res.error:
+                return res
+            cases, else_case = all_cases  # type:ignore
+
+        else:
+            else_case = res.register(self.else_expr())
             if res.error:
                 return res
 
-        return res.success(IfNode(cases, else_case))
+        return res.success((cases, else_case))  # type:ignore
 
     def while_expr(self):
         res = ParseResult()
@@ -580,26 +702,37 @@ class Parser:
         res.register_advance()
         self.advance()
 
-        do = res.register(self.expr())
+        if self.cur_tok.type == TT_NL:
+            res.register_advance()
+            self.advance()
+
+            body = res.register(self.statements())
+            if res.error:
+                return res
+
+            if not self.cur_tok.matches(TT_KWRD, "end"):
+                return res.failure(
+                    InvalidSyntax(
+                        f"Expected 'end', got {self.cur_tok.type}",
+                        self.cur_tok.start_pos,
+                        self.cur_tok.end_pos,
+                    )
+                )
+
+            res.register_advance()
+            self.advance()
+
+            return res.success(WhileNode(condition, body, True))
+
+        body = res.register(self.statement())
         if res.error:
             return res
 
-        if not self.cur_tok.matches("KWRD", "stop"):
-            return res.failure(
-                InvalidSyntax(
-                    f"Expected 'stop', got {self.cur_tok.type}",
-                    self.cur_tok.start_pos,
-                    self.cur_tok.end_pos,
-                )
-            )
-
-        res.register_advance()
-        self.advance()
-
-        return res.success(WhileNode(condition, do))
+        return res.success(WhileNode(condition, body, False))
 
     def fn_def(self):
         res = ParseResult()
+        is_anonymous = True
 
         if not self.cur_tok.matches("KWRD", "fn"):
             return res.failure(
@@ -618,7 +751,7 @@ class Parser:
 
         if self.cur_tok.type == TT_IDENT:
             var_name = self.cur_tok
-
+            is_anonymous = False
             res.register_advance()
             self.advance()
 
@@ -659,25 +792,68 @@ class Parser:
                 res.register_advance()
                 self.advance()
 
-        if self.cur_tok.type != TT_ARROW:
-            return res.failure(
-                InvalidSyntax(
-                    f"Expected ',' or ')', got {self.cur_tok.type}",
-                    self.cur_tok.start_pos,
-                    self.cur_tok.end_pos,
+        if is_anonymous:
+            if self.cur_tok.type != TT_ARROW:
+                return res.failure(
+                    InvalidSyntax(
+                        f"Expected => in anonymous function definition, got {self.cur_tok.type}",
+                        self.cur_tok.start_pos,
+                        self.cur_tok.end_pos,
+                    )
+                )
+
+            res.register_advance()
+            self.advance()
+
+            body = res.register(self.expr())
+            if res.error:
+                return res
+
+            return res.success(
+                FnDefNode(
+                    var_name, arg_names if len(arg_names) > 0 else None, body, True
                 )
             )
 
-        res.register_advance()
-        self.advance()
+        else:
+            if not self.cur_tok.matches(TT_KWRD, "do"):
+                return res.failure(
+                    InvalidSyntax(
+                        f"Expected 'do', got {self.cur_tok.type}",
+                        self.cur_tok.start_pos,
+                        self.cur_tok.end_pos,
+                    )
+                )
 
-        body = res.register(self.expr())
-        if res.error:
-            return res
+            res.register_advance()
+            self.advance()
 
-        return res.success(
-            FnDefNode(var_name, arg_names if len(arg_names) > 0 else None, body)
-        )
+            body = res.register(self.statements())
+            
+            if res.error:
+                return res
+            
+            while self.cur_tok.type == TT_NL:
+                res.register_advance()
+                self.advance()
+
+            if not is_anonymous and not self.cur_tok.matches(TT_KWRD, "end"):
+                return res.failure(
+                    InvalidSyntax(
+                        f"Expected 'end', got {self.cur_tok.type}",
+                        self.cur_tok.start_pos,
+                        self.cur_tok.end_pos,
+                    )
+                )
+            
+            res.register_advance()
+            self.advance()
+            
+            return res.success(
+                FnDefNode(
+                    var_name, arg_names if len(arg_names) > 0 else None, body, False
+                )
+            )
 
     def bin_op(self, func, ops, right_func=None):
         res = ParseResult()
